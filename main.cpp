@@ -2,5 +2,9 @@
 // Created by hareld10 on 6/10/18.
 //
 
-#include "whatsappServer.h"
+int main(int argc, char** argv)
+{
 
+
+
+}

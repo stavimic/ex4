@@ -7,8 +7,11 @@
 
 
 class whatsappClient {
-
 };
 
+int main(int argc, char** argv) {
+
+
+}
 
 #endif //EX4_WHATSAPPCLIENT_H
