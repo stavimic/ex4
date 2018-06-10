@@ -7,8 +7,10 @@
 
 
 class whatsappClient {
-
+public:
+    static int call_socket(const char *hostname, unsigned short portnum);
 };
+
 
 
 #endif //EX4_WHATSAPPCLIENT_H
