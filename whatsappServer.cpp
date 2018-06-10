@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "whatsappServer.h"
 #include "whatsappio.h"
+#include "Helper.h"
 #include <string>
 #include <sstream>
 #include <vector>
@@ -47,18 +48,33 @@ int whatsappServer::establish(unsigned short portnum) {
     return(s);
 }
 
-template<typename Out>
-void split(const std::string &s, char delim, Out result) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        *(result++) = item;
+int whatsappServer::select_flow(int socket) {
+    fd_set clientsfds;
+    fd_set readfds;
+    FD_ZERO(&clientsfds);
+    FD_SET(socket, &clientsfds);
+    FD_SET(STDIN_FILENO, &clientsfds);
+    while (true) {
+        readfds = clientsfds;
+        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0) {
+//            terminateServer();
+            return -1;
+        }
+        if (FD_ISSET(socket, &readfds)) {
+            //will also add the client to the clientsfds
+            std::cout << "HIIIIIII ";
+//            connectNewClient();
+        }
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+//            serverStdInput();
+        }
+        else {
+            std::cout << "HIIIIIII ";
+            //will check each client if it’s in readfds
+            //and then receive a message from him
+//            handleClientRequest();
+        }
     }
-}
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, std::back_inserter(elems));
-    return elems;
 }
 
 int main(int argc, char** argv)
@@ -72,6 +88,7 @@ int main(int argc, char** argv)
             std::cout << boost::lexical_cast<unsigned short>(splitted[1])<<std::endl ;
             int s = whatsappServer::establish(boost::lexical_cast<unsigned short>(splitted[1]));
             std::cout << s;
+            whatsappServer::select_flow(s);
         }
 
         break;

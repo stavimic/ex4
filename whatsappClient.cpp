@@ -6,7 +6,7 @@
 #include <cstring>
 #include <netdb.h>
 #include <unistd.h>
-#include "whatsappServer.h"
+#include "Helper.h"
 #include "whatsappio.h"
 #include <string>
 #include <sstream>
@@ -15,21 +15,8 @@
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 
-template<typename Out>
-void split(const std::string &s, char delim, Out result) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        *(result++) = item;
-    }
-}
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, std::back_inserter(elems));
-    return elems;
-}
 
-int main(int argc, char** argv)
+int main1(int argc, char** argv)
 {
     while (true){
         std::string str;
@@ -69,5 +56,6 @@ int whatsappClient::call_socket(const char *hostname, unsigned short portnum) {
         close(s);
         return(-1);
     }
+    print_connection();
     return(s);
 }
