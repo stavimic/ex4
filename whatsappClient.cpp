@@ -6,7 +6,6 @@
 #include <cstring>
 #include <netdb.h>
 #include <unistd.h>
-#include "Helper.h"
 #include "whatsappio.h"
 #include <string>
 #include <sstream>
@@ -15,13 +14,27 @@
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 
+template<typename Out>
+void split2(const std::string &s, char delim, Out result) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        *(result++) = item;
+    }
+}
+
+std::vector<std::string> split2(std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split2(s, delim, std::back_inserter(elems));
+    return elems;
+}
 
 int main1(int argc, char** argv)
 {
     while (true){
         std::string str;
         getline(std::cin, str);
-        std::vector<std::string> splitted = split(str, ' ');
+        std::vector<std::string> splitted = split2(str, ' ');
         if (splitted[0] == ("whatsappClient"))
         {
 //            std::cout << boost::lexical_cast<unsigned short>(splitted[1])<<std::endl ;
