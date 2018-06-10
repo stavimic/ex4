@@ -1,110 +1,150 @@
 #include "whatsappio.h"
 #include <cstdio>
+#include <iostream>
 
-void print_exit() {
+void print_exit()
+{
     printf("EXIT command is typed: server is shutting down\n");
 }
 
-void print_connection() {
+void print_connection()
+{
     printf("Connected Successfully.\n");
 }
 
-void print_dup_connection() {
+void print_dup_connection()
+{
     printf("Client name is already in use.\n");
 }
 
-void print_fail_connection() {
+void print_fail_connection()
+{
     printf("Failed to connect the server\n");
 }
 
-void print_server_usage() {
+void print_server_usage()
+{
     printf("Usage: whatsappServer portNum\n");
 }
 
-void print_client_usage() {
+void print_client_usage()
+{
     printf("Usage: whatsappClient clientName serverAddress serverPort\n");
 }
 
 void print_create_group(bool server, bool success, 
-                        const std::string& client, const std::string& group) {
-    if(server) {
-        if(success) {
+                        const std::string& client, const std::string& group)
+{
+    if(server)
+    {
+        if(success)
+        {
             printf("%s: Group \"%s\" was created successfully.\n", 
                    client.c_str(), group.c_str());
-        } else {
+        }
+        else
+        {
             printf("%s: ERROR: failed to create group \"%s\"\n", 
                    client.c_str(), group.c_str());
         }
     }
-    else {
-        if(success) {
+    else
+    {
+        if(success)
+        {
             printf("Group \"%s\" was created successfully.\n", group.c_str());
-        } else {
+        }
+        else
+        {
             printf("ERROR: failed to create group \"%s\".\n", group.c_str());
         }
     }
 }
 
 void print_send(bool server, bool success, const std::string& client, 
-                const std::string& name, const std::string& message) {
-    if(server) {
-        if(success) {
+                const std::string& name, const std::string& message)
+{
+    if(server)
+    {
+        if(success)
+        {
             printf("%s: \"%s\" was sent successfully to %s.\n", 
                    client.c_str(), message.c_str(), name.c_str());
-        } else {
+        }
+        else
+        {
             printf("%s: ERROR: failed to send \"%s\" to %s.\n", 
                    client.c_str(), message.c_str(), name.c_str());
         }
     }
-    else {
-        if(success) {
+    else
+    {
+        if(success)
+        {
             printf("Sent successfully.\n");
-        } else {
+        }
+        else
+        {
             printf("ERROR: failed to send.\n");
         }
     }
 }
 
-void print_message(const std::string& client, const std::string& message) {
+void print_message(const std::string& client, const std::string& message)
+{
     printf("%s: %s\n", client.c_str(), message.c_str());
 }
 
-void print_who_server(const std::string& client) {
+void print_who_server(const std::string& client)
+{
     printf("%s: Requests the currently connected client names.\n", client.c_str());
 }
 
-void print_who_client(bool success, const std::vector<std::string>& clients) {
-    if(success) {
+void print_who_client(bool success, const std::vector<std::string>& clients)
+{
+    if(success)
+    {
         bool first = true;
-        for (const std::string& client: clients) {
+        for (const std::string& client: clients)
+        {
             printf("%s%s", first ? "" : ",", client.c_str());
             first = false;
         }
         printf("\n");
-    } else {
+    }
+    else
+    {
         printf("ERROR: failed to receive list of connected clients.\n");
     }
 }
 
-void print_exit(bool server, const std::string& client) {
-    if(server) {
+void print_exit(bool server, const std::string& client)
+{
+    if(server)
+    {
         printf("%s: Unregistered successfully.\n", client.c_str());
-    } else {
-        printf("Unregistered successfully.\n");
+
+    }
+    else
+    {
+        std::cout<< "Unregistered successfully." << std::endl;
     }
 }
 
-void print_invalid_input() {
-    printf("ERROR: Invalid input.\n");
+void print_invalid_input()
+{
+    std::cout<< "ERROR: Invalid input."<< std::endl;
 }
 
-void print_error(const std::string& function_name, int errno) {
-    printf("ERROR: %s %d.\n", function_name.c_str(), errno);
+void print_error(const std::string& function_name, int errno)
+{
+    std::cout<< "ERROR: " << function_name.c_str() << " " <<  errno  << "." << std::endl;
 }
 
 void parse_command(const std::string& command, command_type& commandT, 
                    std::string& name, std::string& message, 
-                   std::vector<std::string>& clients) {
+                   std::vector<std::string>& clients)
+{
     char c[MAX_INPUT];
     const char *s; 
     char *saveptr;
@@ -144,4 +184,9 @@ void parse_command(const std::string& command, command_type& commandT,
     } else {
         commandT = INVALID;
     }
+}
+
+int main()
+{
+    return 0;
 }
