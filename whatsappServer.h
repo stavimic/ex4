@@ -11,6 +11,7 @@ class whatsappServer {
 public:
     static int establish(unsigned short portnum);
     static int select_flow(int socket);
+    static int read_data(int s, char *buf, int n);
 };
 
 

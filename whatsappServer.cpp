@@ -56,39 +56,60 @@ int whatsappServer::establish(unsigned short portnum) {
         return(-1);
     if (bind(s , (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0) {
         close(s);
+        std::cout<<"closing"<<std::endl;
+
         return(-1);
     }
     listen(s, MAX_QUEUD); /* max # of queued connects */
     return(s);
 }
+char *buff;
 
 int whatsappServer::select_flow(int socket) {
+    std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
     FD_SET(socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
+    buff = new char[MAX_MESSAGE];
+    int t;
     while (true) {
         readfds = clientsfds;
         if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0) {
 //            terminateServer();
             return -1;
         }
-        if (FD_ISSET(socket, &readfds)) {
-            //will also add the client to the clientsfds
-//            connectNewClient();
-        }
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
 //            serverStdInput();
         }
+
+        std::cout << "In Select" << std::endl;
+        if (FD_ISSET(socket, &readfds)) {
+            //will also add the client to the clientsfds
+
+            std::cout << "before accept" << std::endl;
+            if((t = accept(socket, nullptr, nullptr) < 0)){
+                std::cout << "accept_fail" << std::endl;
+                return EXIT_FAILURE;
+            }
+            std::cout << "after accept" << std::endl;
+            read_data(t, buff, MAX_MESSAGE);
+            std::cout << "after read" << std::endl;
+            print_message(buff, "Connected");
+//            connectNewClient();
+        }
+
         else {
-            
+            std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
 //            handleClientRequest();
         }
+        bzero(buff, MAX_NAME);
     }
 }
+
 
 int main(int argc, char** argv)
 {
@@ -103,7 +124,7 @@ int main(int argc, char** argv)
         {
             std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
             int s = whatsappServer::establish(boost::lexical_cast<unsigned short>(argv[2]));
-            std::cout << s;
+//            std::cout << s;
             whatsappServer::select_flow(s);
         }
 
@@ -113,3 +134,19 @@ int main(int argc, char** argv)
 }
 
 
+int whatsappServer::read_data(int s, char *buf, int n) {
+    int bcount; /* counts bytes read */
+    int br; /* bytes read this pass */
+    bcount= 0; br= 0;
+    while (bcount < n) { /* loop until full buffer */
+        br = read(s, buf, n-bcount);
+        if ((br > 0)) {
+            bcount += br;
+            buf += br;
+        }
+        if (br < 0) {
+            return(-1);
+        }
+    }
+    return(bcount);
+}

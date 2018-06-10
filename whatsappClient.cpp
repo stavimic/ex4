@@ -13,6 +13,7 @@
 #include <iterator>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
+#include <sys/select.h>
 
 template<typename Out>
 void split2(const std::string &s, char delim, Out result) {
@@ -28,25 +29,45 @@ std::vector<std::string> split2(std::string &s, char delim) {
     split2(s, delim, std::back_inserter(elems));
     return elems;
 }
-
+char* buffer;
 int main(int argc, char** argv)
 {
+    int s;
+    if (strcmp(argv[1],"whatsappClient") == 0)
+    {
+        buffer = new char[MAX_MESSAGE];
+        char *client_name = argv[2];
+        const char *host_name = argv[3];
+        unsigned short port_num = boost::lexical_cast<unsigned short>(argv[4]);
+        buffer = client_name;
+        s = whatsappClient::call_socket(host_name, port_num);
+        std::cout << "S is after call s" << s << std::endl;
+        bzero(buffer, MAX_NAME);
+    }
+
+    fd_set clientsfds;
+    fd_set readfds;
+    FD_ZERO(&clientsfds);
+    FD_SET(s, &clientsfds);
+    FD_SET(STDIN_FILENO, &clientsfds);
+
     while (true){
-//        std::string str;
-//        getline(std::cin, str);
-//        std::vector<std::string> splitted = split2(str, ' ');
-        if (strcmp(argv[1],"whatsappClient") == 0)
-        {
-//            std::cout << boost::lexical_cast<unsigned short>(splitted[1])<<std::endl ;
-            std::string name = argv[2];
-//            std::string host_name = argv[3];
-            const char *h_name = argv[3];
-            int s;
-            unsigned short port_num = boost::lexical_cast<unsigned short>(argv[4]);
-//            s = whatsappClient::call_socket(host_name.c_str(), port_num);
-            s = whatsappClient::call_socket(h_name, port_num);
+        readfds = clientsfds;
+        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0) {
+//            terminateServer();
+            return -1;
         }
-        break;
+        std::cout << "In Select Client" << std::endl;
+
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+//            serverStdInput();
+        }
+        else {
+            std::cout << "in else" << std::endl;
+            //will check each client if it’s in readfds
+            //and then receive a message from him
+//            handleClientRequest();
+        }
     }
 
 }
@@ -59,20 +80,27 @@ int whatsappClient::call_socket(const char *hostname, unsigned short portnum) {
         return(-1);
     }
     memset(&sa,0,sizeof(sa));
-    memcpy((char *)&sa.sin_addr , hp->h_addr ,
-           hp->h_length);
+    memcpy((char *)&sa.sin_addr , hp->h_addr , hp->h_length);
+
     sa.sin_family = hp->h_addrtype;
     sa.sin_port = htons((u_short)portnum);
+
     if ((s = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0) {
         std::cout << "Problem Socket" << std::endl;
         return(-1);
     }
+
+    std::cout << "S is before connect" << s << std::endl;
     if (connect(s, (struct sockaddr *)&sa , sizeof(sa)) < 0) {
         std::cout << "Problem Connect Client" << std::endl;
         close(s);
+        std::cout<<"closing"<<std::endl;
         return(-1);
     }
-    std::cout << "connection" << std::endl;
+    std::cout << "S is after connect" << s << std::endl;
     print_connection();
+    std::cout << "Before write name" << std::endl;
+    write(s, buffer, MAX_NAME);
+    std::cout << "After write name" << std::endl;
     return(s);
 }

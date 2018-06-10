@@ -5,7 +5,7 @@
 #ifndef EX4_WHATSAPPCLIENT_H
 #define EX4_WHATSAPPCLIENT_H
 
-
+#define MAX_QUEUD 10
 class whatsappClient {
 public:
     static int call_socket(const char *hostname, unsigned short portnum);
