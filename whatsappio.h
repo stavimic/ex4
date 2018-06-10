@@ -9,7 +9,6 @@
 #define MAX_MESSAGE 256
 #define MAX_GROUP 50
 #define MAX_INPUT ((MAX_NAME+1)*(MAX_GROUP+2))
-
 enum command_type {CREATE_GROUP, SEND, WHO, EXIT, INVALID};
 
 /*

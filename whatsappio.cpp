@@ -186,7 +186,3 @@ void parse_command(const std::string& command, command_type& commandT,
     }
 }
 
-int main()
-{
-    return 0;
-}

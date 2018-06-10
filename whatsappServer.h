@@ -5,9 +5,11 @@
 #ifndef EX4_WHATSAPPSERVER_H
 #define EX4_WHATSAPPSERVER_H
 
+#define MAX_QUEUD 10
 
 class whatsappServer {
-
+public:
+    static int establish(unsigned short portnum);
 };
 
 
