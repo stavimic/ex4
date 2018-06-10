@@ -76,14 +76,13 @@ int whatsappServer::select_flow(int socket) {
         }
         if (FD_ISSET(socket, &readfds)) {
             //will also add the client to the clientsfds
-            std::cout << "HIIIIIII ";
 //            connectNewClient();
         }
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
 //            serverStdInput();
         }
         else {
-            std::cout << "HIIIIIII ";
+            
             //will check each client if it’s in readfds
             //and then receive a message from him
 //            handleClientRequest();
@@ -93,14 +92,17 @@ int whatsappServer::select_flow(int socket) {
 
 int main(int argc, char** argv)
 {
+    char * uuu = const_cast<char *>("whatsappServer");
     while (true){
-        std::string str;
-        getline(std::cin, str);
-        std::vector<std::string> splitted = split(str, ' ');
-        if (splitted[0] == ("whatsappServer"))
+//        std::string str;
+//        getline(std::cin, str);
+//        std::vector<std::string> splitted = split(str, ' ');
+
+        std::cout << argv[1] << std::endl;
+        if (strcmp(argv[1],"whatsappServer") == 0)
         {
-            std::cout << boost::lexical_cast<unsigned short>(splitted[1])<<std::endl ;
-            int s = whatsappServer::establish(boost::lexical_cast<unsigned short>(splitted[1]));
+            std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
+            int s = whatsappServer::establish(boost::lexical_cast<unsigned short>(argv[2]));
             std::cout << s;
             whatsappServer::select_flow(s);
         }
