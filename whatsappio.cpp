@@ -157,19 +157,19 @@ void parse_command(const std::string& command, command_type& commandT,
     
     if(!strcmp(s, "create_group")) {
         commandT = CREATE_GROUP;
-        s = strtok_r(NULL, " ", &saveptr);
+        s = strtok_r(nullptr, " ", &saveptr);
         if(!s) {
             commandT = INVALID;
             return;
         } else {
             name = s;
-            while((s = strtok_r(NULL, ",", &saveptr)) != NULL) {
+            while((s = strtok_r(nullptr, ",", &saveptr)) != nullptr) {
                 clients.emplace_back(s);
             }
         }
     } else if(!strcmp(s, "send")) {
         commandT = SEND;
-        s = strtok_r(NULL, " ", &saveptr);
+        s = strtok_r(nullptr, " ", &saveptr);
         if(!s) {
             commandT = INVALID;
             return;
@@ -184,9 +184,4 @@ void parse_command(const std::string& command, command_type& commandT,
     } else {
         commandT = INVALID;
     }
-}
-
-int main()
-{
-    return 0;
 }
