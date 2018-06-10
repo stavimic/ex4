@@ -5,7 +5,6 @@
 #include <cstring>
 #include <netdb.h>
 #include <unistd.h>
-#include "whatsappServer.h"
 #include "whatsappio.h"
 #include <string>
 #include <sstream>
@@ -13,7 +12,7 @@
 #include <iterator>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
-
+#define MAX_QUEUD 10
 template<typename Out>
 void split(const std::string &s, char delim, Out result) {
     std::stringstream ss(s);
@@ -29,7 +28,24 @@ std::vector<std::string> split(std::string &s, char delim) {
     return elems;
 }
 
-int whatsappServer::establish(unsigned short portnum) {
+int read_data(int s, char *buf, int n) {
+    int bcount; /* counts bytes read */
+    int br; /* bytes read this pass */
+    bcount= 0; br= 0;
+    while (bcount < n) { /* loop until full buffer */
+        br = read(s, buf, n-bcount);
+        if ((br > 0)) {
+            bcount += br;
+            buf += br;
+        }
+        if (br < 0) {
+            return(-1);
+        }
+    }
+    return(bcount);
+}
+
+int establish(unsigned short portnum) {
     char myname[MAX_NAME+1];
     int s;
     struct sockaddr_in sa;
@@ -65,7 +81,7 @@ int whatsappServer::establish(unsigned short portnum) {
 }
 char *buff;
 
-int whatsappServer::select_flow(int socket) {
+int select_flow(int socket) {
     std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
@@ -123,9 +139,9 @@ int main(int argc, char** argv)
         if (strcmp(argv[1],"whatsappServer") == 0)
         {
             std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
-            int s = whatsappServer::establish(boost::lexical_cast<unsigned short>(argv[2]));
+            int s = establish(boost::lexical_cast<unsigned short>(argv[2]));
 //            std::cout << s;
-            whatsappServer::select_flow(s);
+            select_flow(s);
         }
 
         break;
@@ -134,19 +150,3 @@ int main(int argc, char** argv)
 }
 
 
-int whatsappServer::read_data(int s, char *buf, int n) {
-    int bcount; /* counts bytes read */
-    int br; /* bytes read this pass */
-    bcount= 0; br= 0;
-    while (bcount < n) { /* loop until full buffer */
-        br = read(s, buf, n-bcount);
-        if ((br > 0)) {
-            bcount += br;
-            buf += br;
-        }
-        if (br < 0) {
-            return(-1);
-        }
-    }
-    return(bcount);
-}

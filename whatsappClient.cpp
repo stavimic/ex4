@@ -2,7 +2,6 @@
 // Created by hareld10 on 6/10/18.
 //
 
-#include "whatsappClient.h"
 #include <cstring>
 #include <netdb.h>
 #include <unistd.h>
@@ -15,6 +14,9 @@
 #include <boost/lexical_cast.hpp>
 #include <sys/select.h>
 
+#define MAX_QUEUD 10
+
+char* buffer;
 template<typename Out>
 void split2(const std::string &s, char delim, Out result) {
     std::stringstream ss(s);
@@ -29,50 +31,8 @@ std::vector<std::string> split2(std::string &s, char delim) {
     split2(s, delim, std::back_inserter(elems));
     return elems;
 }
-char* buffer;
-int main(int argc, char** argv)
-{
-    int s;
-    if (strcmp(argv[1],"whatsappClient") == 0)
-    {
-        buffer = new char[MAX_MESSAGE];
-        char *client_name = argv[2];
-        const char *host_name = argv[3];
-        unsigned short port_num = boost::lexical_cast<unsigned short>(argv[4]);
-        buffer = client_name;
-        s = whatsappClient::call_socket(host_name, port_num);
-        std::cout << "S is after call s" << s << std::endl;
-        bzero(buffer, MAX_NAME);
-    }
 
-    fd_set clientsfds;
-    fd_set readfds;
-    FD_ZERO(&clientsfds);
-    FD_SET(s, &clientsfds);
-    FD_SET(STDIN_FILENO, &clientsfds);
-
-    while (true){
-        readfds = clientsfds;
-        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0) {
-//            terminateServer();
-            return -1;
-        }
-        std::cout << "In Select Client" << std::endl;
-
-        if (FD_ISSET(STDIN_FILENO, &readfds)) {
-//            serverStdInput();
-        }
-        else {
-            std::cout << "in else" << std::endl;
-            //will check each client if it’s in readfds
-            //and then receive a message from him
-//            handleClientRequest();
-        }
-    }
-
-}
-
-int whatsappClient::call_socket(const char *hostname, unsigned short portnum) {
+int call_socket(const char *hostname, unsigned short portnum) {
     struct sockaddr_in sa;
     struct hostent *hp;
     int s;
@@ -103,4 +63,46 @@ int whatsappClient::call_socket(const char *hostname, unsigned short portnum) {
     write(s, buffer, MAX_NAME);
     std::cout << "After write name" << std::endl;
     return(s);
+}
+
+int main(int argc, char** argv)
+{
+    int s;
+    if (strcmp(argv[1],"whatsappClient") == 0)
+    {
+        buffer = new char[MAX_MESSAGE];
+        char *client_name = argv[2];
+        const char *host_name = argv[3];
+        unsigned short port_num = boost::lexical_cast<unsigned short>(argv[4]);
+        buffer = client_name;
+        s = call_socket(host_name, port_num);
+        std::cout << "S is after call s" << s << std::endl;
+        bzero(buffer, MAX_NAME);
+    }
+
+    fd_set clientsfds;
+    fd_set readfds;
+    FD_ZERO(&clientsfds);
+    FD_SET(s, &clientsfds);
+    FD_SET(STDIN_FILENO, &clientsfds);
+
+    while (true){
+        readfds = clientsfds;
+        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0) {
+//            terminateServer();
+            return -1;
+        }
+        std::cout << "In Select Client" << std::endl;
+
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+//            serverStdInput();
+        }
+        else {
+            std::cout << "in else" << std::endl;
+            //will check each client if it’s in readfds
+            //and then receive a message from him
+//            handleClientRequest();
+        }
+    }
+
 }
