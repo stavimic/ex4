@@ -1,5 +1,4 @@
 #include "whatsappio.h"
-#include <cstdio>
 #include <iostream>
 
 void print_exit()
