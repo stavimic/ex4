@@ -172,7 +172,7 @@ int handleClientRequest(serverContext* context, int fd){
 
 int select_flow(int connection_socket)
 {
-    serverContext* context = nullptr;
+    serverContext* context;
 
     *context = {
             new char[WA_MAX_NAME],
