@@ -119,8 +119,9 @@ int connectNewClient(serverContext* context, int fd){
     read_data(fd, context->name_buffer, WA_MAX_NAME);
     // check for duplicate
     std::string name = std::string(context->name_buffer);
-    Client new_client = {name, fd};
-    (context->server_members)->push_back(&new_client);
+    Client* new_client = new Client();
+    *new_client = {name, fd};
+    (context->server_members)->push_back(new_client);
 
     print_message(name, "Connected");
     write(fd, auth, WA_MAX_NAME);
@@ -146,10 +147,8 @@ void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
     context->msg_buffer = const_cast<char *>(msg.c_str());
     Client* origin_client = get_client_by_fd(context, origin_fd);
     std::string final_msg = origin_client->name + ": " + msg;
-    write(fd, final_msg.c_str(), WA_MAX_MESSAGE);
+    send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
 }
-
-
 
 int getFdByName(serverContext* context, std::string& name){
     for(auto &client: *(context->server_members)){
@@ -234,7 +233,6 @@ int select_flow(int connection_socket)
                 return EXIT_FAILURE;
             }
             FD_SET(file_descriptor, &clientsfds);
-
             connectNewClient(&context, file_descriptor);
         }
 
