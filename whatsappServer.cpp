@@ -32,7 +32,7 @@ struct Group{
 struct serverContext{
     char *name_buffer;
     char *msg_buffer;
-    std::vector<Client>* server_members;
+    std::vector<Client*>* server_members;
     std::vector<Group*>* server_groups;
 };
 
@@ -129,11 +129,27 @@ int connectNewClient(serverContext* context, int fd){
 
 }
 
-void send_msg(serverContext* context, int fd,  std::string& msg){
+void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd){
     bzero(context->msg_buffer, WA_MAX_MESSAGE);
     context->msg_buffer = const_cast<char *>(msg.c_str());
+    Client
     write(fd, context->msg_buffer, WA_MAX_MESSAGE);
 }
+
+
+Client* get_client_by_fd(serverContext* context, int fd)
+{
+    for(auto &client: *(context->server_members))
+    {
+        if(client.client_socket == fd)
+        {
+            return &client;
+        }
+    }
+    return nullptr;
+}
+
+
 
 int getFdByName(serverContext* context, std::string& name){
     for(auto &client: *(context->server_members)){
@@ -164,7 +180,7 @@ int handleClientRequest(serverContext* context, int fd){
     if(commandT == SEND){
         int dest_fd = getFdByName(context, name);
         // if not -1
-        send_msg(context, dest_fd, msg);
+        send_msg(context, dest_fd, msg, fd);
     }
 }
 
@@ -172,12 +188,12 @@ int handleClientRequest(serverContext* context, int fd){
 
 int select_flow(int connection_socket)
 {
-    serverContext* context = nullptr;
+    serverContext context;
 
-    *context = {
+    context = {
             new char[WA_MAX_NAME],
             new char[WA_MAX_MESSAGE],
-            new std::vector<Client>(),
+            new std::vector<Client*>(),
             new std::vector<Group*>()
     };
 
@@ -212,7 +228,7 @@ int select_flow(int connection_socket)
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            connectNewClient(context, file_descriptor);
+            connectNewClient(&context, file_descriptor);
         }
 
         else
@@ -220,13 +236,13 @@ int select_flow(int connection_socket)
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
-            for(const auto &client: *(context->server_members)){
+            for(const auto &client: *(context.server_members)){
                 if(FD_ISSET(client.client_socket, &readfds)){
-                    handleClientRequest(context, client.client_socket);
+                    handleClientRequest(&context, client.client_socket);
                 }
             }
         }
-        bzero(context->name_buffer, WA_MAX_NAME);
+        bzero(context.name_buffer, WA_MAX_NAME);
     }
 }
 
