@@ -121,9 +121,12 @@ int main(int argc, char** argv)
 
         if (FD_ISSET(STDIN_FILENO, &readfds))
         {
-//            serverStdInput();
+            bzero(name_buffer, WA_MAX_MESSAGE);
+            read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
+            // todo Check if message is valid -----
+            std::cout<<msg_buffer<<std::endl;  // Print the given message
+            
         }
-
 
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(connecting_socket, &readfds))
@@ -134,6 +137,7 @@ int main(int argc, char** argv)
             // todo Check if message is valid -----
             std::cout<<msg_buffer<<std::endl;  // Print the given message
         }
+
     }
 
 }
