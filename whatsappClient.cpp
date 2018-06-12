@@ -56,7 +56,7 @@ int call_socket(const char *hostname,  int portnum)
         return(-1);
     }
 
-    std::cout << "S is before connect" << s << std::endl;
+//    std::cout << "S is before connect" << s << std::endl;
     if (connect(s, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
         std::cout << "Problem Connect Client" << std::endl;
@@ -64,7 +64,7 @@ int call_socket(const char *hostname,  int portnum)
         std::cout<<"closing"<<std::endl;
         return FAIL_CODE;
     }
-    std::cout << "S is after connect" << s << std::endl;
+//    std::cout << "S is after connect" << s << std::endl;
     print_connection();
     std::cout << "Before write name" << std::endl;
     write(s, buffer, WA_MAX_NAME);
@@ -75,17 +75,16 @@ int call_socket(const char *hostname,  int portnum)
 int main(int argc, char** argv)
 {
     int s;
-    if (strcmp(argv[1],"whatsappClient") == 0)
-    {
-        buffer = new char[WA_MAX_MESSAGE];
-        char *client_name = argv[2];
-        const char *host_name = argv[3];
-        int port_num = atoi(argv[4]);
-        buffer = client_name;
-        s = call_socket(host_name, port_num);
-        std::cout << "S is after call s" << s << std::endl;
-        bzero(buffer, WA_MAX_NAME);
-    }
+
+    buffer = new char[WA_MAX_MESSAGE];
+    char *client_name = argv[1];
+    const char *host_name = argv[2];
+    int port_num = atoi(argv[3]);
+    buffer = client_name;
+    s = call_socket(host_name, port_num);
+
+//    std::cout << "S is after call s" << s << std::endl;
+    bzero(buffer, WA_MAX_NAME);
 
     fd_set clientsfds;
     fd_set readfds;

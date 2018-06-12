@@ -79,6 +79,7 @@ int establish(unsigned short portnum)
     /* create socket */
     if ((s= socket(AF_INET, SOCK_STREAM, 0)) < 0)
         return FAIL_CODE;
+
     if (bind(s , (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0)
     {
         close(s);
@@ -93,7 +94,7 @@ char *buff;
 
 int select_flow(int socket)
 {
-    std::cout << "start Select flow" << std::endl;
+//    std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
@@ -144,17 +145,13 @@ int select_flow(int socket)
 
 int main(int argc, char** argv)
 {
-    char * uuu = const_cast<char *>("whatsappServer");
     while (true)
     {
-        std::cout << argv[1] << std::endl;
-        if (strcmp(argv[1],"whatsappServer") == 0)
-        {
-            int s = atoi(argv[2]);
-            std::cout << s <<std::endl ;
-            select_flow(s);
-        }
-
+//        unsigned short s = atoi(argv[1]);
+        int s = atoi(argv[1]);
+        std::cout << s <<std::endl ;
+        int fd = establish((unsigned short) s);
+        select_flow(fd);
         break;
     }
 
