@@ -44,7 +44,7 @@ int call_socket(const char *hostname,  int portnum)
 {
     struct sockaddr_in sa;
     struct hostent *hp;
-    int s;
+    int server_socket;
     if ((hp= gethostbyname (hostname)) == nullptr)
     {
         return FAIL_CODE;
@@ -55,21 +55,21 @@ int call_socket(const char *hostname,  int portnum)
     sa.sin_family = hp->h_addrtype;
     sa.sin_port = htons((u_short)portnum);
 
-    if ((s = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0)
+    if ((server_socket = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0)
     {
         std::cout << "Problem Socket" << std::endl;
         return FAIL_CODE;
     }
-    if (connect(s, (struct sockaddr *)&sa , sizeof(sa)) < 0)
+    if (connect(server_socket, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
-        close(s);
+        close(server_socket);
         std::cout<<"closing, connect didn't succeed in the client side"<<std::endl;
         return FAIL_CODE;
     }
 
-    write(s, buffer, WA_MAX_NAME);
+    write(server_socket, buffer, WA_MAX_NAME);
     bzero(buffer, WA_MAX_NAME);
-    read(s, buffer, WA_MAX_NAME);
+    read(server_socket, buffer, WA_MAX_NAME);
     std::cout << buffer << std::endl;
     if (strcmp(buffer, auth) == 0){
         print_connection();
@@ -78,8 +78,8 @@ int call_socket(const char *hostname,  int portnum)
         //print duplicate name
         print_fail_connection();
     }
-
-    return s;
+    std::cout<< "S is: " << server_socket << std::endl;
+    return server_socket;
 }
 
 int main(int argc, char** argv)
@@ -94,11 +94,10 @@ int main(int argc, char** argv)
 
 
     buffer = client_name;
-    length_buffer = const_cast<char *>(std::to_string(strlen(client_name)).c_str());
-    std::cout<<length_buffer[0]<<"len\n";
+//    length_buffer = const_cast<char *>(std::to_string(strlen(client_name)).c_str());
+//    std::cout<<length_buffer[0]<<"len\n";
 
     connecting_socket = call_socket(host_name, port_num);
-//    std::cout << "S is after call "<< connecting_socket << std::endl;
     bzero(buffer, WA_MAX_NAME);
 
     fd_set clientsfds;
@@ -123,8 +122,7 @@ int main(int argc, char** argv)
         }
         else {
             std::cout << "in else" << std::endl;
-            //will check each client if it’s in readfds
-            //and then receive a message from him
+            //will check this client if it’s in readfds, if so- receive msg from server
 //            handleClientRequest();
         }
     }

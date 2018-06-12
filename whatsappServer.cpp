@@ -137,7 +137,9 @@ void send_msg(serverContext* context, int fd,  std::string& msg){
 
 int getFdByName(serverContext* context, std::string& name){
     for(auto &client: *(context->server_members)){
-        if(!strcmp(client.name, name)){
+        if(client.name == name)
+        {
+//        if(!strcmp(client.name, name))
             return client.client_socket;
         }
     }
