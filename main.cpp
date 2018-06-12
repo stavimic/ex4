@@ -5,7 +5,6 @@
 #include <string>
 #include "whatsappio.h"
 #include "whatsappServer.h"
-#include <boost/algorithm/string.hpp>
 #include <string>
 #include <sstream>
 #include <vector>

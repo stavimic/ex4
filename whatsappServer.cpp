@@ -11,41 +11,50 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
-#include <boost/lexical_cast.hpp>
 #define MAX_QUEUD 10
+#define FAIL_CODE (-1)
+
 template<typename Out>
-void split(const std::string &s, char delim, Out result) {
+void split(const std::string &s, char delim, Out result)
+{
     std::stringstream ss(s);
     std::string item;
-    while (std::getline(ss, item, delim)) {
+    while (std::getline(ss, item, delim))
+    {
         *(result++) = item;
     }
 }
 
-std::vector<std::string> split(std::string &s, char delim) {
+std::vector<std::string> split(std::string &s, char delim)
+{
     std::vector<std::string> elems;
     split(s, delim, std::back_inserter(elems));
     return elems;
 }
 
-int read_data(int s, char *buf, int n) {
+int read_data(int s, char *buf, int n)
+{
     int bcount; /* counts bytes read */
     int br; /* bytes read this pass */
     bcount= 0; br= 0;
-    while (bcount < n) { /* loop until full buffer */
+    while (bcount < n)
+    { /* loop until full buffer */
         br = read(s, buf, n-bcount);
-        if ((br > 0)) {
+        if ((br > 0))
+        {
             bcount += br;
             buf += br;
         }
-        if (br < 0) {
-            return(-1);
+        if (br < 0)
+        {
+            return FAIL_CODE;
         }
     }
     return(bcount);
 }
 
-int establish(unsigned short portnum) {
+int establish(unsigned short portnum)
+{
     char myname[WA_MAX_NAME + 1];
     int s;
     struct sockaddr_in sa;
@@ -55,7 +64,7 @@ int establish(unsigned short portnum) {
     gethostname(myname, WA_MAX_NAME);
     hp = gethostbyname(myname);
     if (hp == NULL)
-        return(-1);
+        return FAIL_CODE;
 
     //sockaddrr_in initlization
     memset(&sa, 0, sizeof(struct sockaddr_in));
@@ -69,8 +78,9 @@ int establish(unsigned short portnum) {
 
     /* create socket */
     if ((s= socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return(-1);
-    if (bind(s , (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0) {
+        return FAIL_CODE;
+    if (bind(s , (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0)
+    {
         close(s);
         std::cout<<"closing"<<std::endl;
 
@@ -81,7 +91,8 @@ int establish(unsigned short portnum) {
 }
 char *buff;
 
-int select_flow(int socket) {
+int select_flow(int socket)
+{
     std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
@@ -92,11 +103,13 @@ int select_flow(int socket) {
     int t;
     while (true) {
         readfds = clientsfds;
-        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0) {
+        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0)
+        {
 //            terminateServer();
-            return -1;
+            return FAIL_CODE;
         }
-        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+        if (FD_ISSET(STDIN_FILENO, &readfds))
+        {
 //            serverStdInput();
         }
 
@@ -105,18 +118,20 @@ int select_flow(int socket) {
             //will also add the client to the clientsfds
 
             std::cout << "before accept" << std::endl;
-            if((t = accept(socket, nullptr, nullptr)) < 0){
+            if((t = accept(socket, nullptr, nullptr)) < 0)
+            {
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            std::cout << "after accept" << std::endl;
+            std::cout << "after accept, fd is " << t << std::endl;
             read_data(t, buff, WA_MAX_MESSAGE);
             std::cout << "after read" << std::endl;
             print_message(buff, "Connected");
 //            connectNewClient();
         }
 
-        else {
+        else
+        {
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
@@ -135,8 +150,8 @@ int main(int argc, char** argv)
         std::cout << argv[1] << std::endl;
         if (strcmp(argv[1],"whatsappServer") == 0)
         {
-            std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
-            int s = establish(boost::lexical_cast<unsigned short>(argv[2]));
+            int s = atoi(argv[2]);
+            std::cout << s <<std::endl ;
             select_flow(s);
         }
 
