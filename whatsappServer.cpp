@@ -1,6 +1,3 @@
-//
-// Created by hareld10 on 6/10/18.
-//
 
 #include <cstring>
 #include <netdb.h>
@@ -11,8 +8,17 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
+
+// =======================  Macros & Globals  ============================= //
 #define MAX_QUEUD 10
 #define FAIL_CODE (-1)
+
+char *buff;
+
+// ======================================================================= //
+
+
+
 
 template<typename Out>
 void split(const std::string &s, char delim, Out result)
@@ -50,7 +56,7 @@ int read_data(int s, char *buf, int n)
             return FAIL_CODE;
         }
     }
-    return(bcount);
+    return bcount;
 }
 
 int establish(unsigned short portnum)
@@ -63,7 +69,7 @@ int establish(unsigned short portnum)
     //hostnet initialization
     gethostname(myname, WA_MAX_NAME);
     hp = gethostbyname(myname);
-    if (hp == NULL)
+    if (hp == nullptr)
         return FAIL_CODE;
 
     //sockaddrr_in initlization
@@ -79,32 +85,30 @@ int establish(unsigned short portnum)
     /* create socket */
     if ((s= socket(AF_INET, SOCK_STREAM, 0)) < 0)
         return FAIL_CODE;
-
     if (bind(s , (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0)
     {
         close(s);
         std::cout<<"closing"<<std::endl;
 
-        return(-1);
+        return FAIL_CODE;
     }
     listen(s, MAX_QUEUD); /* max # of queued connects */
-    return(s);
+    return s;
 }
-char *buff;
 
-int select_flow(int socket)
+int select_flow(int connection_socket)
 {
-//    std::cout << "start Select flow" << std::endl;
+    std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
-    FD_SET(socket, &clientsfds);
+    FD_SET(connection_socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
     buff = new char[WA_MAX_MESSAGE];
     int t;
     while (true) {
         readfds = clientsfds;
-        if (select(MAX_QUEUD+1, &readfds, NULL, NULL, NULL) < 0)
+        if (select(MAX_QUEUD+1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
 //            terminateServer();
             return FAIL_CODE;
@@ -115,11 +119,11 @@ int select_flow(int socket)
         }
 
         std::cout << "In Select" << std::endl;
-        if (FD_ISSET(socket, &readfds)) {
+        if (FD_ISSET(connection_socket, &readfds)) {
             //will also add the client to the clientsfds
 
             std::cout << "before accept" << std::endl;
-            if((t = accept(socket, nullptr, nullptr)) < 0)
+            if((t = accept(connection_socket, nullptr, nullptr)) < 0)
             {
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
@@ -147,14 +151,12 @@ int main(int argc, char** argv)
 {
     while (true)
     {
-//        unsigned short s = atoi(argv[1]);
-        int s = atoi(argv[1]);
-        std::cout << s <<std::endl ;
-        int fd = establish((unsigned short) s);
+        short port_number = atoi(argv[1]);
+        std::cout << port_number << std::endl ;
+        int fd = establish(port_number);
         select_flow(fd);
         break;
     }
-
 }
 
 
