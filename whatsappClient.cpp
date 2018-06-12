@@ -15,6 +15,7 @@
 #define FAIL_CODE (-1)
 
 char* buffer;
+char* length_buffer;
 // ======================================================================= //
 
 
@@ -58,20 +59,16 @@ int call_socket(const char *hostname,  int portnum)
         std::cout << "Problem Socket" << std::endl;
         return FAIL_CODE;
     }
-
-//    std::cout << "S is before connect" << s << std::endl;
     if (connect(s, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
-//        std::cout << "Problem Connect Client" << std::endl;
         close(s);
-        std::cout<<"closing"<<std::endl;
+        std::cout<<"closing, connect didn't succeed in the client side"<<std::endl;
         return FAIL_CODE;
     }
-//    std::cout << "S is after connect" << s << std::endl;
     print_connection();
-//    std::cout << "Before write name" << std::endl;
+    write(s, length_buffer, WA_MAX_NAME);
+
     write(s, buffer, WA_MAX_NAME);
-//    std::cout << "After write name" << std::endl;
     return s;
 }
 
@@ -80,10 +77,16 @@ int main(int argc, char** argv)
     int connecting_socket;
 
     buffer = new char[WA_MAX_MESSAGE];
+    length_buffer = new char[5];
     char *client_name = argv[1];
     const char *host_name = argv[2];
     int port_num = atoi(argv[3]);
+
+
     buffer = client_name;
+    length_buffer[0] = strlen(client_name);
+    std::cout<<length_buffer[0]<<"len\n";
+
     connecting_socket = call_socket(host_name, port_num);
 //    std::cout << "S is after call "<< connecting_socket << std::endl;
     bzero(buffer, WA_MAX_NAME);
