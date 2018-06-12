@@ -124,8 +124,9 @@ int main(int argc, char** argv)
             bzero(msg_buffer, WA_MAX_MESSAGE);
             read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
-            write(server, name_buffer, WA_MAX_NAME);  // Forward msg to server
-
+//            ssize_t t = write(server, msg_buffer, WA_MAX_MESSAGE);  // Forward msg to server
+            ssize_t t = send(server, msg_buffer, WA_MAX_MESSAGE, 0);  // Forward msg to server
+            std::cout<<t<<std::endl;
         }
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
@@ -135,6 +136,19 @@ int main(int argc, char** argv)
             read(server, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
             std::cout<<msg_buffer<<std::endl;  // Print the given message
+        }
+
+        if (FD_ISSET(3, &readfds)) {
+            std::cout << "3" << std::endl;
+        }
+        if (FD_ISSET(4, &readfds)) {
+            std::cout << "4" << std::endl;
+        }
+        if (FD_ISSET(5, &readfds)) {
+            std::cout << "5" << std::endl;
+        }
+        if (FD_ISSET(6, &readfds)) {
+            std::cout << "6" << std::endl;
         }
     }
 
