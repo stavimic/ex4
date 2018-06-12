@@ -89,7 +89,7 @@ int call_socket(const char *hostname,  int portnum)
 
 int main(int argc, char** argv)
 {
-    int connecting_socket;
+    int server;
 
     name_buffer = new char[WA_MAX_NAME];
     msg_buffer = new char[WA_MAX_MESSAGE];
@@ -100,13 +100,13 @@ int main(int argc, char** argv)
 
     name_buffer = client_name;
 
-    connecting_socket = call_socket(host_name, port_num);
+    server = call_socket(host_name, port_num);
     bzero(name_buffer, WA_MAX_NAME);
 
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
-    FD_SET(connecting_socket, &clientsfds);
+    FD_SET(server, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
 
     while (true)
@@ -119,18 +119,20 @@ int main(int argc, char** argv)
         }
 //        std::cout << "In Select Client" << std::endl;
 
-        if (FD_ISSET(STDIN_FILENO, &readfds))
-        {
-//            serverStdInput();
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+            std::cout << "in std::in" << std::endl;
+            bzero(msg_buffer, WA_MAX_MESSAGE);
+            read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
+            // todo Check if message is valid -----
+            write(server, name_buffer, WA_MAX_NAME);  // Forward msg to server
+
         }
-
-
         //will check this client if it’s in readfds, if so- receive msg from server :
-        if (FD_ISSET(connecting_socket, &readfds))
+        if (FD_ISSET(server, &readfds))
         {
             std::cout << "in else" << std::endl;
-            bzero(name_buffer, WA_MAX_MESSAGE);
-            read(connecting_socket, msg_buffer, WA_MAX_MESSAGE);
+            bzero(msg_buffer, WA_MAX_MESSAGE);
+            read(server, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
             std::cout<<msg_buffer<<std::endl;  // Print the given message
         }
