@@ -102,6 +102,16 @@ void print_error(const std::string& function_name, int error_number) {
     printf("ERROR: %s %d.\n", function_name.c_str(), error_number);
 }
 
+
+/*
+ * Description: Parse user input from the argument "command". The other arguments
+ * are used as output of this function.
+ * command: The user input
+ * commandT: The command type
+ * name: Name of the client/group
+ * message: The message
+ * clients: a vector containing the names of all clients
+*/
 void parse_command(const std::string& command, command_type& commandT, 
                    std::string& name, std::string& message, 
                    std::vector<std::string>& clients) {
@@ -115,33 +125,49 @@ void parse_command(const std::string& command, command_type& commandT,
     strcpy(c, command.c_str());
     s = strtok_r(c, " ", &saveptr);
     
-    if(!strcmp(s, "create_group")) {
+    if(!strcmp(s, "create_group"))
+    {
         commandT = CREATE_GROUP;
         s = strtok_r(NULL, " ", &saveptr);
-        if(!s) {
+        if(!s)
+        {
             commandT = INVALID;
             return;
-        } else {
+        }
+        else
+        {
             name = s;
-            while((s = strtok_r(NULL, ",", &saveptr)) != NULL) {
+            while((s = strtok_r(NULL, ",", &saveptr)) != NULL)
+            {
                 clients.emplace_back(s);
             }
         }
-    } else if(!strcmp(s, "send")) {
+    }
+    else if(!strcmp(s, "send"))
+    {
         commandT = SEND;
         s = strtok_r(NULL, " ", &saveptr);
-        if(!s) {
+        if(!s)
+        {
             commandT = INVALID;
             return;
-        } else {
+        }
+        else
+        {
             name = s;
             message = command.substr(name.size() + 6); // 6 = 2 spaces + "send"
         }
-    } else if(!strcmp(s, "who")) {
+    }
+    else if(!strcmp(s, "who"))
+    {
         commandT = WHO;
-    } else if(!strcmp(s, "exit")) {
+    }
+    else if(!strcmp(s, "exit"))
+    {
         commandT = EXIT;
-    } else {
+    }
+    else
+    {
         commandT = INVALID;
     }
 }
