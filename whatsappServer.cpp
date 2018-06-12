@@ -5,6 +5,7 @@
 #include "whatsappio.h"
 #include <string>
 #include <sstream>
+
 #include <vector>
 #include <iterator>
 #include <iostream>
@@ -41,7 +42,7 @@ std::vector<std::string> split(std::string &s, char delim)
 int read_data(int s, char *buf, int n)
 {
     int bcount; /* counts bytes read */
-    int br; /* bytes read this pass */
+    ssize_t br; /* bytes read this pass */
     bcount= 0; br= 0;
     while (bcount < n)
     { /* loop until full buffer */
@@ -85,10 +86,10 @@ int establish(unsigned short portnum)
     /* create socket */
     if ((s= socket(AF_INET, SOCK_STREAM, 0)) < 0)
         return FAIL_CODE;
-    if (bind(s , (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0)
+    if (bind(s, (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0)
     {
         close(s);
-        std::cout<<"closing"<<std::endl;
+        std::cout<<"closing- bind did't succeed"<<std::endl;
 
         return FAIL_CODE;
     }
@@ -105,8 +106,9 @@ int select_flow(int connection_socket)
     FD_SET(connection_socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
     buff = new char[WA_MAX_MESSAGE];
-    int t;
-    while (true) {
+    int file_descriptor;
+    while (true)
+    {
         readfds = clientsfds;
         if (select(MAX_QUEUD+1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
@@ -123,13 +125,17 @@ int select_flow(int connection_socket)
             //will also add the client to the clientsfds
 
             std::cout << "before accept" << std::endl;
-            if((t = accept(connection_socket, nullptr, nullptr)) < 0)
+            if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            std::cout << "after accept, fd is " << t << std::endl;
-            read_data(t, buff, WA_MAX_MESSAGE);
+            std::cout << "after accept, fd is " << file_descriptor << std::endl;
+
+            ssize_t len_of_word = read(file_descriptor, buff, 1);
+
+            bzero(buff, WA_MAX_NAME);
+            read_data(file_descriptor, buff, len_of_word);
             std::cout << "after read" << std::endl;
             print_message(buff, "Connected");
 //            connectNewClient();
