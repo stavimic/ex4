@@ -124,7 +124,7 @@ int main(int argc, char** argv)
             bzero(msg_buffer, WA_MAX_MESSAGE);
             read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
-            write(server, name_buffer, WA_MAX_NAME);  // Forward msg to server
+            write(server, msg_buffer, WA_MAX_NAME);  // Forward msg to server
 
         }
         //will check this client if it’s in readfds, if so- receive msg from server :

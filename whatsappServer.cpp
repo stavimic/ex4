@@ -121,6 +121,7 @@ int connectNewClient(serverContext* context, int fd){
     std::string name = std::string(context->name_buffer);
     Client new_client = {name, fd};
     (context->server_members)->push_back(&new_client);
+
     print_message(name, "Connected");
     write(fd, auth, WA_MAX_NAME);
 
@@ -206,26 +207,34 @@ int select_flow(int connection_socket)
     while (true)
     {
         readfds = clientsfds;
-        if (select(MAX_QUEUD+1, &readfds, nullptr, nullptr, nullptr) < 0)
+
+        std::cout << "before select" << std::endl;
+
+        if (select(MAX_QUEUD + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
 //            terminateServer();
             return FAIL_CODE;
         }
+
+        std::cout << "after select" << std::endl;
+
+
         if (FD_ISSET(STDIN_FILENO, &readfds))
         {
 //            serverStdInput();
         }
 
-//        std::cout << "In Select" << std::endl;
         if (FD_ISSET(connection_socket, &readfds)) {
             //will also add the client to the clientsfds
 
-//            std::cout << "before accept" << std::endl;
             if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
+
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
+            FD_SET(file_descriptor, &clientsfds);
+
             connectNewClient(&context, file_descriptor);
         }
 
@@ -234,7 +243,7 @@ int select_flow(int connection_socket)
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
-            for(const auto client: *((context.server_members))){
+            for(const auto client: *(context.server_members)){
                 if(FD_ISSET((*client).client_socket, &readfds)){
                     handleClientRequest(&context, client->client_socket);
                 }
