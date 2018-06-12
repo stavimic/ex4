@@ -14,8 +14,6 @@
 #define MAX_QUEUD 10
 #define FAIL_CODE (-1)
 
-char *name_buffer;
-char *msg_buffer;
 
 // ======================================================================= //
 
@@ -32,6 +30,8 @@ struct Group{
 };
 
 struct serverContext{
+    char *name_buffer;
+    char *msg_buffer;
     std::vector<Client>* server_members;
     std::vector<Group*>* server_groups;
 };
@@ -113,13 +113,13 @@ int establish(unsigned short portnum)
     return s;
 }
 
-int connectNewClient(std::vector<Client>* server_members, int fd){
+int connectNewClient(serverContext* context, int fd){
 
-    bzero(name_buffer, WA_MAX_NAME);
-    read_data(fd, name_buffer, WA_MAX_NAME);
+    bzero(context->name_buffer, WA_MAX_NAME);
+    read_data(fd, context->name_buffer, WA_MAX_NAME);
     // check for duplicate
-    std::string name = std::string(name_buffer);
-    server_members->push_back(
+    std::string name = std::string(context->name_buffer);
+    context->server_members->push_back(
             {
                     name,
                     fd
@@ -129,33 +129,40 @@ int connectNewClient(std::vector<Client>* server_members, int fd){
 
 }
 
-void send_msg(int fd,  std::string& msg){
-    bzero(msg_buffer, WA_MAX_MESSAGE);
-    msg_buffer = const_cast<char *>(msg.c_str());
-    write(fd, msg_buffer, WA_MAX_MESSAGE);
+void send_msg(serverContext* context, int fd,  std::string& msg){
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    context->msg_buffer = const_cast<char *>(msg.c_str());
+    write(fd, context->msg_buffer, WA_MAX_MESSAGE);
 }
 
-int getFdByName(std::string& name){
-
+int getFdByName(serverContext* context, std::string& name){
+    for(auto &client: *(context->server_members)){
+        if(!strcmp(client.name, name)){
+            return client.client_socket;
+        }
+    }
+    return FAIL_CODE;
 }
 
-int handleClientRequest(int fd){
-    bzero(msg_buffer, WA_MAX_MESSAGE);
-    read_data(fd, msg_buffer, WA_MAX_MESSAGE);
+int handleClientRequest(serverContext* context, int fd){
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);
 
     command_type commandT;
     std::string name;
     std::string msg;
     std::vector<std::string> recipients;
 
-    parse_command(msg_buffer, commandT, name, msg, recipients);
+    parse_command(context->msg_buffer, commandT, name, msg, recipients);
 
     if(commandT == INVALID){
         // update client
     }
 
     if(commandT == SEND){
-        send_msg()
+        int dest_fd = getFdByName(context, name);
+        // if not -1
+        send_msg(context, dest_fd, msg);
     }
 }
 
@@ -163,8 +170,14 @@ int handleClientRequest(int fd){
 
 int select_flow(int connection_socket)
 {
-    std::vector<Client>* server_members= new std::vector<Client>();
-    std::vector<Group*>* server_groups= new std::vector<Group*>();
+    serverContext* context = nullptr;
+
+    *context = {
+            new char[WA_MAX_NAME],
+            new char[WA_MAX_MESSAGE],
+            new std::vector<Client>(),
+            new std::vector<Group*>()
+    };
 
     std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
@@ -172,8 +185,6 @@ int select_flow(int connection_socket)
     FD_ZERO(&clientsfds);
     FD_SET(connection_socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
-    name_buffer = new char[WA_MAX_NAME];
-    msg_buffer = new char[WA_MAX_MESSAGE];
 
     int file_descriptor;
     while (true)
@@ -199,7 +210,7 @@ int select_flow(int connection_socket)
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            connectNewClient(server_members, file_descriptor);
+            connectNewClient(context, file_descriptor);
         }
 
         else
@@ -207,13 +218,13 @@ int select_flow(int connection_socket)
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
-            for(const auto &client: *server_members){
+            for(const auto &client: *(context->server_members)){
                 if(FD_ISSET(client.client_socket, &readfds)){
-                    handleClientRequest(client.client_socket);
+                    handleClientRequest(context, client.client_socket);
                 }
             }
         }
-        bzero(name_buffer, WA_MAX_NAME);
+        bzero(context->name_buffer, WA_MAX_NAME);
     }
 }
 
