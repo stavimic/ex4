@@ -46,13 +46,13 @@ int read_data(int s, char *buf, int n) {
 }
 
 int establish(unsigned short portnum) {
-    char myname[MAX_NAME+1];
+    char myname[WA_MAX_NAME + 1];
     int s;
     struct sockaddr_in sa;
     struct hostent *hp;  //Official name of the host
 
     //hostnet initialization
-    gethostname(myname, MAX_NAME);
+    gethostname(myname, WA_MAX_NAME);
     hp = gethostbyname(myname);
     if (hp == NULL)
         return(-1);
@@ -88,7 +88,7 @@ int select_flow(int socket) {
     FD_ZERO(&clientsfds);
     FD_SET(socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
-    buff = new char[MAX_MESSAGE];
+    buff = new char[WA_MAX_MESSAGE];
     int t;
     while (true) {
         readfds = clientsfds;
@@ -110,7 +110,7 @@ int select_flow(int socket) {
                 return EXIT_FAILURE;
             }
             std::cout << "after accept" << std::endl;
-            read_data(t, buff, MAX_MESSAGE);
+            read_data(t, buff, WA_MAX_MESSAGE);
             std::cout << "after read" << std::endl;
             print_message(buff, "Connected");
 //            connectNewClient();
@@ -122,7 +122,7 @@ int select_flow(int socket) {
             //and then receive a message from him
 //            handleClientRequest();
         }
-        bzero(buff, MAX_NAME);
+        bzero(buff, WA_MAX_NAME);
     }
 }
 

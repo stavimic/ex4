@@ -60,7 +60,7 @@ int call_socket(const char *hostname, unsigned short portnum) {
     std::cout << "S is after connect" << s << std::endl;
     print_connection();
     std::cout << "Before write name" << std::endl;
-    write(s, buffer, MAX_NAME);
+    write(s, buffer, WA_MAX_NAME);
     std::cout << "After write name" << std::endl;
     return(s);
 }
@@ -70,14 +70,14 @@ int main(int argc, char** argv)
     int s;
     if (strcmp(argv[1],"whatsappClient") == 0)
     {
-        buffer = new char[MAX_MESSAGE];
+        buffer = new char[WA_MAX_MESSAGE];
         char *client_name = argv[2];
         const char *host_name = argv[3];
         unsigned short port_num = boost::lexical_cast<unsigned short>(argv[4]);
         buffer = client_name;
         s = call_socket(host_name, port_num);
         std::cout << "S is after call s" << s << std::endl;
-        bzero(buffer, MAX_NAME);
+        bzero(buffer, WA_MAX_NAME);
     }
 
     fd_set clientsfds;
