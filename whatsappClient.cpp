@@ -14,9 +14,9 @@
 #define MAX_QUEUED 10
 #define FAIL_CODE (-1)
 
-char* buffer;
-char* length_buffer;
-size_t len_word;
+char* name_buffer;
+char* msg_buffer;
+
 // ======================================================================= //
 
 
@@ -67,11 +67,11 @@ int call_socket(const char *hostname,  int portnum)
         return FAIL_CODE;
     }
 
-    write(server_socket, buffer, WA_MAX_NAME);
-    bzero(buffer, WA_MAX_NAME);
-    read(server_socket, buffer, WA_MAX_NAME);
-    std::cout << buffer << std::endl;
-    if (strcmp(buffer, auth) == 0){
+    write(server_socket, name_buffer, WA_MAX_NAME);
+    bzero(name_buffer, WA_MAX_NAME);
+    read(server_socket, name_buffer, WA_MAX_NAME);
+    std::cout << name_buffer << std::endl;
+    if (strcmp(name_buffer, auth) == 0){
         print_connection();
     }
     else{
@@ -82,23 +82,26 @@ int call_socket(const char *hostname,  int portnum)
     return server_socket;
 }
 
+
+//int read_message(int fd)
+
+
+
 int main(int argc, char** argv)
 {
     int connecting_socket;
 
-    buffer = new char[WA_MAX_MESSAGE];
-    length_buffer = new char[5];
+    name_buffer = new char[WA_MAX_NAME];
+    msg_buffer = new char[WA_MAX_MESSAGE];
     char *client_name = argv[1];
     const char *host_name = argv[2];
     int port_num = atoi(argv[3]);
 
 
-    buffer = client_name;
-//    length_buffer = const_cast<char *>(std::to_string(strlen(client_name)).c_str());
-//    std::cout<<length_buffer[0]<<"len\n";
+    name_buffer = client_name;
 
     connecting_socket = call_socket(host_name, port_num);
-    bzero(buffer, WA_MAX_NAME);
+    bzero(name_buffer, WA_MAX_NAME);
 
     fd_set clientsfds;
     fd_set readfds;
@@ -120,10 +123,16 @@ int main(int argc, char** argv)
         {
 //            serverStdInput();
         }
-        else {
+
+
+        //will check this client if it’s in readfds, if so- receive msg from server :
+        if (FD_ISSET(connecting_socket, &readfds))
+        {
             std::cout << "in else" << std::endl;
-            //will check this client if it’s in readfds, if so- receive msg from server
-//            handleClientRequest();
+            bzero(name_buffer, WA_MAX_MESSAGE);
+            read(connecting_socket, msg_buffer, WA_MAX_MESSAGE);
+            // todo Check if message is valid -----
+            std::cout<<msg_buffer<<std::endl;  // Print the given message
         }
     }
 
