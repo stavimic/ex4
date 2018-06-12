@@ -1,6 +1,3 @@
-//
-// Created by hareld10 on 6/10/18.
-//
 
 #include <cstring>
 #include <netdb.h>
@@ -13,10 +10,16 @@
 #include <iostream>
 #include <sys/select.h>
 
+// =======================  Macros & Globals  ============================= //
 #define MAX_QUEUED 10
 #define FAIL_CODE (-1)
 
 char* buffer;
+// ======================================================================= //
+
+
+
+
 template<typename Out>
 void split2(const std::string &s, char delim, Out result)
 {
@@ -53,44 +56,43 @@ int call_socket(const char *hostname,  int portnum)
     if ((s = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0)
     {
         std::cout << "Problem Socket" << std::endl;
-        return(-1);
+        return FAIL_CODE;
     }
 
-    std::cout << "S is before connect" << s << std::endl;
+//    std::cout << "S is before connect" << s << std::endl;
     if (connect(s, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
-        std::cout << "Problem Connect Client" << std::endl;
+//        std::cout << "Problem Connect Client" << std::endl;
         close(s);
         std::cout<<"closing"<<std::endl;
         return FAIL_CODE;
     }
-    std::cout << "S is after connect" << s << std::endl;
+//    std::cout << "S is after connect" << s << std::endl;
     print_connection();
-    std::cout << "Before write name" << std::endl;
+//    std::cout << "Before write name" << std::endl;
     write(s, buffer, WA_MAX_NAME);
-    std::cout << "After write name" << std::endl;
-    return(s);
+//    std::cout << "After write name" << std::endl;
+    return s;
 }
 
 int main(int argc, char** argv)
 {
-    int s;
-    if (strcmp(argv[1],"whatsappClient") == 0)
-    {
-        buffer = new char[WA_MAX_MESSAGE];
-        char *client_name = argv[2];
-        const char *host_name = argv[3];
-        int port_num = atoi(argv[4]);
-        buffer = client_name;
-        s = call_socket(host_name, port_num);
-        std::cout << "S is after call s" << s << std::endl;
-        bzero(buffer, WA_MAX_NAME);
-    }
+    int connecting_socket;
+
+    buffer = new char[WA_MAX_MESSAGE];
+    char *client_name = argv[1];
+    const char *host_name = argv[2];
+    int port_num = atoi(argv[3]);
+    buffer = client_name;
+    connecting_socket = call_socket(host_name, port_num);
+    std::cout << "S is after call "<< connecting_socket << std::endl;
+    bzero(buffer, WA_MAX_NAME);
+
 
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
-    FD_SET(s, &clientsfds);
+    FD_SET(connecting_socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
 
     while (true)
@@ -101,7 +103,7 @@ int main(int argc, char** argv)
 //            terminateServer();
             return FAIL_CODE;
         }
-        std::cout << "In Select Client" << std::endl;
+//        std::cout << "In Select Client" << std::endl;
 
         if (FD_ISSET(STDIN_FILENO, &readfds))
         {
