@@ -18,8 +18,6 @@ char *buff;
 // ======================================================================= //
 
 
-
-
 template<typename Out>
 void split(const std::string &s, char delim, Out result)
 {
@@ -45,6 +43,7 @@ int read_data(int s, char *buf, int n)
     bcount= 0; br= 0;
     while (bcount < n)
     { /* loop until full buffer */
+//        std::cout << buf << std::endl;
         br = read(s, buf, n-bcount);
         if ((br > 0))
         {

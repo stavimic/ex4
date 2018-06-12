@@ -85,9 +85,8 @@ int main(int argc, char** argv)
     int port_num = atoi(argv[3]);
     buffer = client_name;
     connecting_socket = call_socket(host_name, port_num);
-    std::cout << "S is after call "<< connecting_socket << std::endl;
+//    std::cout << "S is after call "<< connecting_socket << std::endl;
     bzero(buffer, WA_MAX_NAME);
-
 
     fd_set clientsfds;
     fd_set readfds;
