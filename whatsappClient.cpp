@@ -16,11 +16,12 @@
 
 char* buffer;
 char* length_buffer;
+size_t len_word;
 // ======================================================================= //
 
 
 
-
+char * auth = const_cast<char *>("auth_success");
 template<typename Out>
 void split2(const std::string &s, char delim, Out result)
 {
@@ -65,10 +66,19 @@ int call_socket(const char *hostname,  int portnum)
         std::cout<<"closing, connect didn't succeed in the client side"<<std::endl;
         return FAIL_CODE;
     }
-    print_connection();
-    write(s, length_buffer, WA_MAX_NAME);
 
     write(s, buffer, WA_MAX_NAME);
+    bzero(buffer, WA_MAX_NAME);
+    read(s, buffer, WA_MAX_NAME);
+    std::cout << buffer << std::endl;
+    if (strcmp(buffer, auth) == 0){
+        print_connection();
+    }
+    else{
+        //print duplicate name
+        print_fail_connection();
+    }
+
     return s;
 }
 
@@ -84,7 +94,7 @@ int main(int argc, char** argv)
 
 
     buffer = client_name;
-    length_buffer[0] = strlen(client_name);
+    length_buffer = const_cast<char *>(std::to_string(strlen(client_name)).c_str());
     std::cout<<length_buffer[0]<<"len\n";
 
     connecting_socket = call_socket(host_name, port_num);

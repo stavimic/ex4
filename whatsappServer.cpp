@@ -18,6 +18,17 @@ char *buff;
 
 // ======================================================================= //
 
+char * auth = const_cast<char *>("auth_success");
+
+struct Client{
+    std::string name;
+    int client_socket;
+};
+
+struct Group{
+    std::string group_name;
+    std::vector<Client*> members;
+};
 
 template<typename Out>
 void split(const std::string &s, char delim, Out result)
@@ -40,7 +51,7 @@ std::vector<std::string> split(std::string &s, char delim)
 int read_data(int s, char *buf, int n)
 {
     int bcount; /* counts bytes read */
-    ssize_t br; /* bytes read this pass */
+    int br; /* bytes read this pass */
     bcount= 0; br= 0;
     while (bcount < n)
     { /* loop until full buffer */
@@ -96,8 +107,28 @@ int establish(unsigned short portnum)
     return s;
 }
 
+int connectNewClient(std::vector<Client>* server_members, int fd){
+
+    bzero(buff, WA_MAX_NAME);
+    read_data(fd, buff, 30);
+    // check for duplicate
+    std::string name = std::string(buff);
+    server_members->push_back(
+            {
+                    name,
+                    fd
+            });
+    print_message(name, "Connected");
+    write(fd, auth, WA_MAX_NAME);
+
+}
+
+
 int select_flow(int connection_socket)
 {
+    std::vector<Client>* server_members= new std::vector<Client>();
+    std::vector<Group*>* server_groups= new std::vector<Group*>();
+
     std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
@@ -119,25 +150,17 @@ int select_flow(int connection_socket)
 //            serverStdInput();
         }
 
-        std::cout << "In Select" << std::endl;
+//        std::cout << "In Select" << std::endl;
         if (FD_ISSET(connection_socket, &readfds)) {
             //will also add the client to the clientsfds
 
-            std::cout << "before accept" << std::endl;
+//            std::cout << "before accept" << std::endl;
             if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            std::cout << "after accept, fd is " << file_descriptor << std::endl;
-
-            ssize_t len_of_word = read(file_descriptor, buff, 1);
-
-            bzero(buff, WA_MAX_NAME);
-            read_data(file_descriptor, buff, len_of_word);
-            std::cout << "after read" << std::endl;
-            print_message(buff, "Connected");
-//            connectNewClient();
+            connectNewClient(server_members, file_descriptor);
         }
 
         else
@@ -145,7 +168,9 @@ int select_flow(int connection_socket)
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
-//            handleClientRequest();
+            handleClientRequest();
+
+
         }
         bzero(buff, WA_MAX_NAME);
     }
