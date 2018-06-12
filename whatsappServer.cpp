@@ -14,12 +14,27 @@
 #define MAX_QUEUD 10
 #define FAIL_CODE (-1)
 
-char *buff;
 
 // ======================================================================= //
 
+char * auth = const_cast<char *>("auth_success");
 
+struct Client{
+    std::string name;
+    int client_socket;
+};
 
+struct Group{
+    std::string group_name;
+    std::vector<Client*> members;
+};
+
+struct serverContext{
+    char *name_buffer;
+    char *msg_buffer;
+    std::vector<Client>* server_members;
+    std::vector<Group*>* server_groups;
+};
 
 template<typename Out>
 void split(const std::string &s, char delim, Out result)
@@ -41,12 +56,12 @@ std::vector<std::string> split(std::string &s, char delim)
 
 int read_data(int s, char *buf, int n)
 {
-    bzero(buff, WA_MAX_NAME);
     int bcount; /* counts bytes read */
-    ssize_t br; /* bytes read this pass */
+    int br; /* bytes read this pass */
     bcount= 0; br= 0;
     while (bcount < n)
     { /* loop until full buffer */
+//        std::cout << buf << std::endl;
         br = read(s, buf, n-bcount);
         if ((br > 0))
         {
@@ -98,15 +113,79 @@ int establish(unsigned short portnum)
     return s;
 }
 
+int connectNewClient(serverContext* context, int fd){
+
+    bzero(context->name_buffer, WA_MAX_NAME);
+    read_data(fd, context->name_buffer, WA_MAX_NAME);
+    // check for duplicate
+    std::string name = std::string(context->name_buffer);
+    context->server_members->push_back(
+            {
+                    name,
+                    fd
+            });
+    print_message(name, "Connected");
+    write(fd, auth, WA_MAX_NAME);
+
+}
+
+void send_msg(serverContext* context, int fd,  std::string& msg){
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    context->msg_buffer = const_cast<char *>(msg.c_str());
+    write(fd, context->msg_buffer, WA_MAX_MESSAGE);
+}
+
+int getFdByName(serverContext* context, std::string& name){
+    for(auto &client: *(context->server_members)){
+        if(!strcmp(client.name, name)){
+            return client.client_socket;
+        }
+    }
+    return FAIL_CODE;
+}
+
+int handleClientRequest(serverContext* context, int fd){
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);
+
+    command_type commandT;
+    std::string name;
+    std::string msg;
+    std::vector<std::string> recipients;
+
+    parse_command(context->msg_buffer, commandT, name, msg, recipients);
+
+    if(commandT == INVALID){
+        // update client
+    }
+
+    if(commandT == SEND){
+        int dest_fd = getFdByName(context, name);
+        // if not -1
+        send_msg(context, dest_fd, msg);
+    }
+}
+
+
+
 int select_flow(int connection_socket)
 {
+    serverContext* context = nullptr;
+
+    *context = {
+            new char[WA_MAX_NAME],
+            new char[WA_MAX_MESSAGE],
+            new std::vector<Client>(),
+            new std::vector<Group*>()
+    };
+
     std::cout << "start Select flow" << std::endl;
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
     FD_SET(connection_socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
-    buff = new char[WA_MAX_MESSAGE];
+
     int file_descriptor;
     while (true)
     {
@@ -120,31 +199,32 @@ int select_flow(int connection_socket)
         {
 //            serverStdInput();
         }
-        std::cout << "In Select" << std::endl;
-        if (FD_ISSET(connection_socket, &readfds))
-        {
+
+//        std::cout << "In Select" << std::endl;
+        if (FD_ISSET(connection_socket, &readfds)) {
             //will also add the client to the clientsfds
 
-            std::cout << "before accept" << std::endl;
+//            std::cout << "before accept" << std::endl;
             if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            std::cout << "after accept, fd is " << file_descriptor << std::endl;
-            read_data(file_descriptor, buff, WA_MAX_NAME);
-            std::cout << "after read" << std::endl;
-            print_message(buff, "Connected");
-//            connectNewClient();
+            connectNewClient(context, file_descriptor);
         }
+
         else
         {
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
-//            handleClientRequest();
+            for(const auto &client: *(context->server_members)){
+                if(FD_ISSET(client.client_socket, &readfds)){
+                    handleClientRequest(context, client.client_socket);
+                }
+            }
         }
-        bzero(buff, WA_MAX_NAME);
+        bzero(context->name_buffer, WA_MAX_NAME);
     }
 }
 
