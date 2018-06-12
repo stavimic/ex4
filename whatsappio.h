@@ -5,10 +5,11 @@
 #include <string>
 #include <vector>
 
-#define MAX_NAME 30
-#define MAX_MESSAGE 256
-#define MAX_GROUP 50
-#define MAX_INPUT ((MAX_NAME+1)*(MAX_GROUP+2))
+#define WA_MAX_NAME 30
+#define WA_MAX_MESSAGE 256
+#define WA_MAX_GROUP 50
+#define WA_MAX_INPUT ((WA_MAX_NAME+1)*(WA_MAX_GROUP+2))
+
 enum command_type {CREATE_GROUP, SEND, WHO, EXIT, INVALID};
 
 /*
@@ -99,7 +100,7 @@ void print_invalid_input();
 /*
  * Description: Prints to the screen the messages of system-call error
 */
-void print_error(const std::string& function_name, int errno);
+void print_error(const std::string& function_name, int error_number);
 
 /*
  * Description: Parse user input from the argument "command". The other arguments

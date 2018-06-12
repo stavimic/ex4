@@ -105,7 +105,7 @@ int select_flow(int socket) {
             //will also add the client to the clientsfds
 
             std::cout << "before accept" << std::endl;
-            if((t = accept(socket, nullptr, nullptr) < 0)){
+            if((t = accept(socket, nullptr, nullptr)) < 0){
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
@@ -130,17 +130,13 @@ int select_flow(int socket) {
 int main(int argc, char** argv)
 {
     char * uuu = const_cast<char *>("whatsappServer");
-    while (true){
-//        std::string str;
-//        getline(std::cin, str);
-//        std::vector<std::string> splitted = split(str, ' ');
-
+    while (true)
+    {
         std::cout << argv[1] << std::endl;
         if (strcmp(argv[1],"whatsappServer") == 0)
         {
             std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
             int s = establish(boost::lexical_cast<unsigned short>(argv[2]));
-//            std::cout << s;
             select_flow(s);
         }
 
