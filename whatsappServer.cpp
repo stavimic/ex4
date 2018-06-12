@@ -135,8 +135,9 @@ int main(int argc, char** argv)
         std::cout << argv[1] << std::endl;
         if (strcmp(argv[1],"whatsappServer") == 0)
         {
-            std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
-            int s = establish(boost::lexical_cast<unsigned short>(argv[2]));
+//            std::cout << boost::lexical_cast<unsigned short>(argv[2])<<std::endl ;
+//            int s = establish(boost::lexical_cast<unsigned short>(argv[2]));
+            int s = establish(atoi(argv[2]));
             select_flow(s);
         }
 
