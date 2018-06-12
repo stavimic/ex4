@@ -56,7 +56,7 @@ int read_data(int s, char *buf, int n)
             return FAIL_CODE;
         }
     }
-    return(bcount);
+    return bcount;
 }
 
 int establish(unsigned short portnum)
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
 {
     while (true)
     {
-        int port_number = atoi(argv[1]);
+        short port_number = atoi(argv[1]);
         std::cout << port_number << std::endl ;
         int fd = establish(port_number);
         select_flow(fd);
