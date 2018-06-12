@@ -119,44 +119,43 @@ int connectNewClient(serverContext* context, int fd){
     read_data(fd, context->name_buffer, WA_MAX_NAME);
     // check for duplicate
     std::string name = std::string(context->name_buffer);
-    context->server_members->push_back(
-            {
-                    name,
-                    fd
-            });
+    Client new_client = {name, fd};
+    (context->server_members)->push_back(&new_client);
     print_message(name, "Connected");
     write(fd, auth, WA_MAX_NAME);
 
 }
 
-void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd){
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    context->msg_buffer = const_cast<char *>(msg.c_str());
-    Client
-    write(fd, context->msg_buffer, WA_MAX_MESSAGE);
-}
-
-
 Client* get_client_by_fd(serverContext* context, int fd)
 {
-    for(auto &client: *(context->server_members))
+    for(auto client: *((*context).server_members))
     {
-        if(client.client_socket == fd)
+        if(client->client_socket == fd)
         {
-            return &client;
+            return client;
         }
     }
     return nullptr;
 }
 
 
+void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
+{
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    context->msg_buffer = const_cast<char *>(msg.c_str());
+    Client* origin_client = get_client_by_fd(context, origin_fd);
+    std::string final_msg = origin_client->name + ": " + msg;
+    write(fd, final_msg.c_str(), WA_MAX_MESSAGE);
+}
+
+
 
 int getFdByName(serverContext* context, std::string& name){
     for(auto &client: *(context->server_members)){
-        if(client.name == name)
+        if(client->name == name)
         {
 //        if(!strcmp(client.name, name))
-            return client.client_socket;
+            return client->client_socket;
         }
     }
     return FAIL_CODE;
@@ -189,7 +188,6 @@ int handleClientRequest(serverContext* context, int fd){
 int select_flow(int connection_socket)
 {
     serverContext context;
-
     context = {
             new char[WA_MAX_NAME],
             new char[WA_MAX_MESSAGE],
@@ -236,9 +234,9 @@ int select_flow(int connection_socket)
             std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
-            for(const auto &client: *(context.server_members)){
-                if(FD_ISSET(client.client_socket, &readfds)){
-                    handleClientRequest(&context, client.client_socket);
+            for(const auto client: *((context.server_members))){
+                if(FD_ISSET((*client).client_socket, &readfds)){
+                    handleClientRequest(&context, client->client_socket);
                 }
             }
         }
