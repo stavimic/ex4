@@ -120,7 +120,6 @@ int main(int argc, char** argv)
 //        std::cout << "In Select Client" << std::endl;
 
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-            std::cout << "in std::in" << std::endl;
             bzero(msg_buffer, WA_MAX_MESSAGE);
             read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
@@ -130,25 +129,12 @@ int main(int argc, char** argv)
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
         {
-            std::cout << "in else" << std::endl;
             bzero(msg_buffer, WA_MAX_MESSAGE);
             read(server, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
             std::cout<<msg_buffer<<std::endl;  // Print the given message
         }
 
-        if (FD_ISSET(3, &readfds)) {
-            std::cout << "3" << std::endl;
-        }
-        if (FD_ISSET(4, &readfds)) {
-            std::cout << "4" << std::endl;
-        }
-        if (FD_ISSET(5, &readfds)) {
-            std::cout << "5" << std::endl;
-        }
-        if (FD_ISSET(6, &readfds)) {
-            std::cout << "6" << std::endl;
-        }
     }
 
 }
