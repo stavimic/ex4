@@ -157,16 +157,29 @@ int verify_input(clientContext* context, int fd, int dest){
         case CREATE_GROUP:
             verify_create_group(context);
         case WHO:
-
+            break;
         case EXIT:
-
+            break;
         default:
             break;
     }
 
     send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);  // Forward msg to server
+    //todo check if fail
 
-
+    switch (context->commandT){
+        case SEND:
+            print_send(false, true, context->client_name, context->client_name, context->client_name);
+            break;
+        case CREATE_GROUP:
+            break;
+        case WHO:
+            break;
+        case EXIT:
+            break;
+        default:
+            break;
+    }
 
 }
 
@@ -225,11 +238,11 @@ int main(int argc, char** argv)
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
         {
-            std::cout << "in else" << std::endl;
+//            std::cout << "in else" << std::endl;
             bzero(context.msg_buffer, WA_MAX_MESSAGE);
             read(server, context.msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
-            std::cout<<context.msg_buffer<<std::endl;  // Print the given message
+            std::cout<<context.msg_buffer;  // Print the given message
         }
     }
 
