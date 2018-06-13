@@ -26,7 +26,7 @@ struct Client{
 
 struct Group{
     std::string group_name;
-    std::vector<Client*> members;
+    std::vector<Client*>* members;
 };
 
 struct serverContext{
@@ -66,7 +66,6 @@ int read_data(int s, char *buf, int n)
     bcount= 0; br= 0;
     while (bcount < n)
     { /* loop until full buffer */
-//        std::cout << buf << std::endl;
         br = read(s, buf, n-bcount);
         if ((br > 0))
         {
@@ -146,6 +145,27 @@ Client* get_client_by_fd(serverContext* context, int fd)
     return nullptr;
 }
 
+Client* get_client_by_name(serverContext* context, std::string& name)
+{
+    for(auto client: *((*context).server_members))
+    {
+        if(client->name == name)
+        {
+            return client;
+        }
+    }
+    return nullptr;
+}
+
+int getFdByName(serverContext* context, std::string& name){
+    for(auto &client: *(context->server_members)){
+        if(client->name == name)
+        {
+            return client->client_socket;
+        }
+    }
+    return FAIL_CODE;
+}
 
 void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
@@ -157,27 +177,78 @@ void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
     send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
 }
 
-int getFdByName(serverContext* context, std::string& name){
-    for(auto &client: *(context->server_members)){
-        if(client->name == name)
+
+int does_name_exist(serverContext* context, std::string& name)
+{
+    if (getFdByName(context, name) != FAIL_CODE)
+    {
+        return true;
+    }
+    for(auto &group: *(context->server_groups)){
+        if(group->group_name == name)
         {
-//        if(!strcmp(client.name, name))
-            return client->client_socket;
+            return true;
         }
     }
-    return FAIL_CODE;
+    return false;
 }
+
+
+int handel_group_creation(serverContext* context, int origin_fd)
+{
+    // Make sure the given name doesn't already exist:
+    if (does_name_exist(context,  *(context->name)))
+    {
+        return FAIL_CODE;
+    }
+
+    // Check the name is legal todo move to the client side:
+    int i = 0;
+    while((*(context->name))[i])
+    {
+        if (! std::isalnum((*(context->name))[i]))
+        {
+            return FAIL_CODE;
+        }
+    }
+
+    // Check that every client exists in the sever:
+    for(std::string& name: *(context->recipients))
+    {
+        if (get_client_by_name(context, name) == nullptr)
+        {
+            return FAIL_CODE;
+        }
+    }
+
+    std::vector<Client*>* group_members = new std::vector<Client*>();
+    Client* admin = get_client_by_fd(context, origin_fd);
+    group_members->push_back(admin);  // Add the admin to the group
+
+    for(std::string& name: *(context->recipients))
+    {
+        Client* cur_client = get_client_by_name(context, name);
+        for(auto& member: *group_members)
+        {
+            if (cur_client->name == name)
+            {
+                break;
+            }
+        }
+        // If the client isn't already in the group, add it:
+        group_members->push_back(cur_client);
+    }
+    Group* new_group = new Group();
+    *new_group = {(*(context->name), group_members};
+    (context->server_groups)->push_back(new_group);
+    return EXIT_SUCCESS;
+}
+
 
 int handleClientRequest(serverContext* context, int fd)
 {
-
-
     bzero(context->msg_buffer, WA_MAX_MESSAGE);
     read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);
-//    std::cout<<"message is: " << context->msg_buffer << std::endl;
-
-
-
     parse_command(context->msg_buffer, context->commandT,
                   *(context->name), *(context->msg), *(context->recipients));
 
@@ -189,6 +260,12 @@ int handleClientRequest(serverContext* context, int fd)
         int dest_fd = getFdByName(context, *(context->name));
         // if not -1
         send_msg(context, dest_fd, *(context->msg), fd);
+    }
+
+    else if (context->commandT == CREATE_GROUP)
+    {
+        // todo check if succeeded
+        handel_group_creation(context, fd);
     }
 }
 
@@ -212,8 +289,6 @@ int select_flow(int connection_socket)
         message,
         recipients
     };
-
-
 
     fd_set clientsfds;
     fd_set readfds;

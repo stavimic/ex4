@@ -122,9 +122,10 @@ int main(int argc, char** argv)
             std::cout << "in std::in" << std::endl;
             bzero(msg_buffer, WA_MAX_MESSAGE);
             read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
-            // todo Check if message is valid -----
+            // todo: Check if message is valid and if not print ERROR -----
             send(server, msg_buffer, WA_MAX_MESSAGE, 0);  // Forward msg to server
 
+            // todo: receive feedback from server if the sending succeeded and output SUCCESS / ERROR
         }
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
