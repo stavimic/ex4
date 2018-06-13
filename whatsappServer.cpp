@@ -18,6 +18,8 @@
 // ======================================================================= //
 
 char * auth = const_cast<char *>("auth_success");
+char * command_fail = const_cast<char *>("command_fail");
+
 
 struct Client{
     std::string name;
@@ -128,7 +130,7 @@ int connectNewClient(serverContext* context, int fd)
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
 
-    print_message(name, "Connected");
+    std::cout<< name << " connected" << std::endl;
     write(fd, auth, WA_MAX_NAME);
     return EXIT_SUCCESS;
 
@@ -150,6 +152,13 @@ Client* get_client_by_name(serverContext* context, std::string& name)
 {
     for(auto client: *((*context).server_members))
     {
+        long len = name.length();
+        std::string sub = name.substr(len - 1);
+
+        if( (len >= 1) & (sub == "\n"))
+        {
+            name = name.substr(0, len - 1);
+        }
         if(client->name == name)
         {
             return client;
@@ -225,6 +234,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
         {
             return FAIL_CODE;
         }
+        i++;
     }
 
     // Check that every client exists in the sever:
@@ -256,6 +266,8 @@ int handel_group_creation(serverContext* context, int origin_fd)
     Group* new_group = new Group();
     *new_group = {*(context->name), group_members};
     (context->server_groups)->push_back(new_group);
+
+    print_create_group(true, true, admin->name, new_group->group_name); // Print success message
     return EXIT_SUCCESS;
 }
 
@@ -290,7 +302,7 @@ int handleClientRequest(serverContext* context, int fd)
                 if(member->name != sender->name)
                 {
                     std::string final_msg = sender->name + ": " + *(context->msg);
-                    send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+                    send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
                 }
             }
             return EXIT_SUCCESS;
@@ -305,9 +317,16 @@ int handleClientRequest(serverContext* context, int fd)
 
     else if (context->commandT == CREATE_GROUP)
     {
-        // todo check if succeeded
-        handel_group_creation(context, fd);
+        if(handel_group_creation(context, fd) == FAIL_CODE)
+        {
+            write(fd, command_fail, WA_MAX_NAME);
+        }
+        else
+        {
+            write(fd, auth, WA_MAX_NAME);
+        }
     }
+    return EXIT_SUCCESS;
 }
 
 

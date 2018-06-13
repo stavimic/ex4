@@ -16,12 +16,12 @@
 
 char* name_buffer;
 char* msg_buffer;
+char * auth = const_cast<char *>("auth_success");
+char * command_fail = const_cast<char *>("command_fail");
 
 // ======================================================================= //
 
 
-
-char * auth = const_cast<char *>("auth_success");
 template<typename Out>
 void split2(const std::string &s, char delim, Out result)
 {
@@ -78,7 +78,6 @@ int call_socket(const char *hostname,  int portnum)
         //print duplicate name
         print_fail_connection();
     }
-    std::cout<< "S is: " << server_socket << std::endl;
     return server_socket;
 }
 
@@ -118,9 +117,8 @@ int main(int argc, char** argv)
             return FAIL_CODE;
         }
 //        std::cout << "In Select Client" << std::endl;
-
-        if (FD_ISSET(STDIN_FILENO, &readfds)) {
-            std::cout << "in std::in" << std::endl;
+        if (FD_ISSET(STDIN_FILENO, &readfds))
+        {
             bzero(msg_buffer, WA_MAX_MESSAGE);
             read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
             // todo: Check if message is valid and if not print ERROR -----
@@ -136,19 +134,6 @@ int main(int argc, char** argv)
             read(server, msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
             std::cout<<msg_buffer<<std::endl;  // Print the given message
-        }
-
-        if (FD_ISSET(3, &readfds)) {
-            std::cout << "3" << std::endl;
-        }
-        if (FD_ISSET(4, &readfds)) {
-            std::cout << "4" << std::endl;
-        }
-        if (FD_ISSET(5, &readfds)) {
-            std::cout << "5" << std::endl;
-        }
-        if (FD_ISSET(6, &readfds)) {
-            std::cout << "6" << std::endl;
         }
     }
 
