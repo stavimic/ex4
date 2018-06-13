@@ -34,6 +34,11 @@ struct serverContext{
     char *msg_buffer;
     std::vector<Client*>* server_members;
     std::vector<Group*>* server_groups;
+
+    command_type commandT;
+    std::string *name;
+    std::string *msg;
+    std::vector<std::string> *recipients;
 };
 
 template<typename Out>
@@ -113,7 +118,8 @@ int establish(unsigned short portnum)
     return s;
 }
 
-int connectNewClient(serverContext* context, int fd){
+int connectNewClient(serverContext* context, int fd)
+{
 
     bzero(context->name_buffer, WA_MAX_NAME);
     read_data(fd, context->name_buffer, WA_MAX_NAME);
@@ -143,9 +149,10 @@ Client* get_client_by_fd(serverContext* context, int fd)
 
 void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+
+//    bzero(context->msg_buffer, WA_MAX_MESSAGE);
     context->msg_buffer = const_cast<char *>(msg.c_str());
-    Client* origin_client = get_client_by_fd(context, origin_fd);
+    Client* origin_client = get_client_by_fd(context, origin_fd); // todo check if nullptr
     std::string final_msg = origin_client->name + ": " + msg;
     send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
 }
@@ -161,25 +168,27 @@ int getFdByName(serverContext* context, std::string& name){
     return FAIL_CODE;
 }
 
-int handleClientRequest(serverContext* context, int fd){
+int handleClientRequest(serverContext* context, int fd)
+{
+
+
     bzero(context->msg_buffer, WA_MAX_MESSAGE);
     read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);
+//    std::cout<<"message is: " << context->msg_buffer << std::endl;
 
-    command_type commandT;
-    std::string name;
-    std::string msg;
-    std::vector<std::string> recipients;
 
-    parse_command(context->msg_buffer, commandT, name, msg, recipients);
 
-    if(commandT == INVALID){
+    parse_command(context->msg_buffer, context->commandT,
+                  *(context->name), *(context->msg), *(context->recipients));
+
+    if((context->commandT) == INVALID){
         // update client
     }
 
-    if(commandT == SEND){
-        int dest_fd = getFdByName(context, name);
+    if(context->commandT == SEND){
+        int dest_fd = getFdByName(context, *(context->name));
         // if not -1
-        send_msg(context, dest_fd, msg, fd);
+        send_msg(context, dest_fd, *(context->msg), fd);
     }
 }
 
@@ -188,26 +197,35 @@ int handleClientRequest(serverContext* context, int fd){
 int select_flow(int connection_socket)
 {
     serverContext context;
+    command_type T;
+    std::string* name = new std::string;
+    std::string* message = new std::string;
+    std::vector<std::string>* recipients = new std::vector<std::string>;
+
     context = {
-            new char[WA_MAX_NAME],
-            new char[WA_MAX_MESSAGE],
-            new std::vector<Client*>(),
-            new std::vector<Group*>()
+        new char[WA_MAX_NAME],
+        new char[WA_MAX_MESSAGE],
+        new std::vector<Client*>(),
+        new std::vector<Group*>(),
+        T,
+        name,
+        message,
+        recipients
     };
 
-    std::cout << "start Select flow" << std::endl;
+
+
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
     FD_SET(connection_socket, &clientsfds);
     FD_SET(STDIN_FILENO, &clientsfds);
-
     int file_descriptor;
     while (true)
     {
         readfds = clientsfds;
 
-        std::cout << "before select" << std::endl;
+//        std::cout << "before select" << std::endl;
 
         if (select(MAX_QUEUD + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
@@ -215,7 +233,7 @@ int select_flow(int connection_socket)
             return FAIL_CODE;
         }
 
-        std::cout << "after select" << std::endl;
+//        std::cout << "after select" << std::endl;
 
 
         if (FD_ISSET(STDIN_FILENO, &readfds))
@@ -238,7 +256,7 @@ int select_flow(int connection_socket)
 
         else
         {
-            std::cout << "in else" << std::endl;
+//            std::cout << "in else" << std::endl;
             //will check each client if it’s in readfds
             //and then receive a message from him
             for(const auto client: *(context.server_members)){
