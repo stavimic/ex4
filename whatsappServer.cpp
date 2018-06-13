@@ -130,7 +130,7 @@ int connectNewClient(serverContext* context, int fd)
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
 
-    std::cout<< name << " connected" << std::endl;
+    std::cout<< name << " connected." << std::endl;
     write(fd, auth, WA_MAX_NAME);
     return EXIT_SUCCESS;
 
@@ -197,8 +197,14 @@ void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 //    bzero(context->msg_buffer, WA_MAX_MESSAGE);
 //    context->msg_buffer = const_cast<char *>(msg.c_str());
     Client* origin_client = get_client_by_fd(context, origin_fd); // todo check if nullptr
+    Client* dest = get_client_by_fd(context, fd); // todo check if nullptr
+
     std::string final_msg = origin_client->name + ": " + msg;
     send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+
+    // todo inform client that send succeeded
+
+    print_send(true, true, origin_client->name, dest->name, msg);
 }
 
 
@@ -292,11 +298,11 @@ int handleClientRequest(serverContext* context, int fd)
             return EXIT_SUCCESS;
         }
 
-        // Check if the group exists:
+        // Check if this is a group message, and the group exists:
         Group* curGroup = getGroupByName(context, *(context->name));
+        Client* sender = get_client_by_fd(context, fd);
         if(curGroup != nullptr)
         {
-            Client* sender = get_client_by_fd(context, fd);
             for(auto member: *(curGroup->members))
             {
                 if(member->name != sender->name)
@@ -305,11 +311,13 @@ int handleClientRequest(serverContext* context, int fd)
                     send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
                 }
             }
-            return EXIT_SUCCESS;
+            print_send(true, true, sender->name, *(context->name), *(context->msg)); // message success
+            return EXIT_SUCCESS; // todo inform client that message succeeded
         }
         else
         {
-            return FAIL_CODE; // todo ERROR
+            print_send(true, true, sender->name, *(context->name), *(context->msg)); // message FAIL
+            return FAIL_CODE; // todo inform client that message FAILED
         }
 
 

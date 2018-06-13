@@ -53,6 +53,15 @@ void print_create_group(bool server, bool success,
     }
 }
 
+
+/*
+ * Description: Prints to the screen the messages of "send" command
+ * server: true for server, false for client
+ * success: Whether the operation was successful
+ * client: Client name
+ * name: Name of the client/group destination of the message
+ * message: The message
+*/
 void print_send(bool server, bool success, const std::string& client, 
                 const std::string& name, const std::string& message) {
     if(server) {
@@ -82,7 +91,8 @@ void print_who_server(const std::string& client) {
 }
 
 void print_who_client(bool success, const std::vector<std::string>& clients) {
-    if(success) {
+    if(success)
+    {
         bool first = true;
         for (const std::string& client: clients) {
             printf("%s%s", first ? "" : ",", client.c_str());
@@ -94,10 +104,14 @@ void print_who_client(bool success, const std::vector<std::string>& clients) {
     }
 }
 
-void print_exit(bool server, const std::string& client) {
-    if(server) {
+void print_exit(bool server, const std::string& client)
+{
+    if(server)
+    {
         printf("%s: Unregistered successfully.\n", client.c_str());
-    } else {
+    }
+    else
+    {
         printf("Unregistered successfully.\n");
     }
 }
