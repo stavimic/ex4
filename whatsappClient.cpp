@@ -102,17 +102,18 @@ int verify_send(clientContext* context)
     if(strcmp(context->input_name->c_str(), context->client_name) == 0)
     {
         print_send(false, false, context->client_name, *(context->input_name), " ");
+        return FAIL_CODE;
     }
     return EXIT_SUCCESS;
 }
 int verify_create_group(clientContext* context)
 {
     int i = 0;
-    if(context->recipients->size() < 2)
-    {
-        print_create_group(false, false, "",*(context->input_name));
-        return FAIL_CODE;
-    }
+//    if(context->recipients->size() < 1)
+//    {
+//        print_create_group(false, false, "",*(context->input_name));
+//        return FAIL_CODE;
+//    }
     while((*(context->input_name))[i])
     {
         if (! std::isalnum((*(context->input_name))[i]))
@@ -123,6 +124,7 @@ int verify_create_group(clientContext* context)
         i++;
     }
 
+    (context->recipients)->push_back(std::string(context->client_name));
     std::sort(context->recipients->begin(), context->recipients->end());
     auto uniqCnt = std::unique(context->recipients->begin(), context->recipients->end()) - context->recipients->begin();
     if(uniqCnt < 2)
@@ -164,23 +166,22 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
     }
 
-    send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);  // Forward msg to server
-    //todo check if fail
-
-    switch (context->commandT){
-        case SEND:
-            print_send(false, true, context->client_name, context->client_name, context->client_name);
-            break;
-        case CREATE_GROUP:
-            break;
-        case WHO:
-            break;
-        case EXIT:
-            break;
-        default:
-            break;
+    if(send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0) != FAIL_CODE) {  // Forward msg to server
+        //todo check if fail
+        switch (context->commandT) {
+            case SEND:
+                print_send(false, true, context->client_name, context->client_name, context->client_name);
+                break;
+            case CREATE_GROUP:
+                print_create_group(false, true, context->client_name, *context->input_name);
+            case WHO:
+                break;
+            case EXIT:
+                break;
+            default:
+                break;
+        }
     }
-
 }
 
 int main(int argc, char** argv)
@@ -206,7 +207,7 @@ int main(int argc, char** argv)
             client_name
     };
 
-    context.name_buffer = client_name;
+    strcpy(context.name_buffer, client_name);
     server = call_socket(&context, host_name, port_num);
     bzero(context.name_buffer, WA_MAX_NAME);
 
