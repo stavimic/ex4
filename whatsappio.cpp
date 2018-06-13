@@ -162,7 +162,16 @@ void parse_command(const std::string& command, command_type& commandT,
             name = s;
             while((s = strtok_r(NULL, ",", &saveptr)) != NULL)
             {
-                clients.emplace_back(s);
+                std::string t = std::string(s);
+                long len = t.length();
+                std::string sub = t.substr(len - 1);
+
+                if( (len >= 1) & (sub == "\n"))
+                {
+                    t = t.substr(0, len - 1);
+                }
+
+                clients.emplace_back(t.c_str());
             }
         }
     }

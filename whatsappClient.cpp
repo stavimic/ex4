@@ -127,6 +127,9 @@ int verify_create_group(clientContext* context)
     (context->recipients)->push_back(std::string(context->client_name));
     std::sort(context->recipients->begin(), context->recipients->end());
     auto uniqCnt = std::unique(context->recipients->begin(), context->recipients->end()) - context->recipients->begin();
+    for(auto elem: *context->recipients){
+        std::cout << elem << std::endl;
+    }
     if(uniqCnt < 2)
     {
         print_create_group(false, false, "",*(context->input_name));
@@ -151,13 +154,17 @@ int verify_input(clientContext* context, int fd, int dest){
     {
         print_invalid_input();
     }
-
     switch (context->commandT){
         case SEND:
-            verify_send(context);
+            if(verify_send(context) == FAIL_CODE){
+                return FAIL_CODE;
+            }
             break;
         case CREATE_GROUP:
-            verify_create_group(context);
+            if(verify_create_group(context) == FAIL_CODE){
+                return FAIL_CODE;
+            }
+            break;
         case WHO:
             break;
         case EXIT:
