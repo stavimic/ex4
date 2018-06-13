@@ -231,18 +231,6 @@ int handel_group_creation(serverContext* context, int origin_fd)
     {
         return FAIL_CODE;
     }
-
-    // Check the name is legal todo move to the client side:
-    int i = 0;
-    while((*(context->name))[i])
-    {
-        if (! std::isalnum((*(context->name))[i]))
-        {
-            return FAIL_CODE;
-        }
-        i++;
-    }
-
     // Check that every client exists in the sever:
     for(std::string& name: *(context->recipients))
     {
@@ -272,8 +260,6 @@ int handel_group_creation(serverContext* context, int origin_fd)
     Group* new_group = new Group();
     *new_group = {*(context->name), group_members};
     (context->server_groups)->push_back(new_group);
-
-    print_create_group(true, true, admin->name, new_group->group_name); // Print success message
     return EXIT_SUCCESS;
 }
 
@@ -289,6 +275,7 @@ int handleClientRequest(serverContext* context, int fd)
         // update client
     }
 
+    Client* sender = get_client_by_fd(context, fd);
     if(context->commandT == SEND)
     {
         int dest_fd = getFdByName(context, *(context->name));
@@ -300,7 +287,6 @@ int handleClientRequest(serverContext* context, int fd)
 
         // Check if this is a group message, and the group exists:
         Group* curGroup = getGroupByName(context, *(context->name));
-        Client* sender = get_client_by_fd(context, fd);
         if(curGroup != nullptr)
         {
             for(auto member: *(curGroup->members))
@@ -312,11 +298,13 @@ int handleClientRequest(serverContext* context, int fd)
                 }
             }
             print_send(true, true, sender->name, *(context->name), *(context->msg)); // message success
+            write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
             return EXIT_SUCCESS; // todo inform client that message succeeded
         }
         else
         {
-            print_send(true, true, sender->name, *(context->name), *(context->msg)); // message FAIL
+            print_send(true, false, sender->name, *(context->name), *(context->msg)); // message FAIL
+            write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
             return FAIL_CODE; // todo inform client that message FAILED
         }
 
@@ -327,11 +315,13 @@ int handleClientRequest(serverContext* context, int fd)
     {
         if(handel_group_creation(context, fd) == FAIL_CODE)
         {
-            write(fd, command_fail, WA_MAX_NAME);
+            write(fd, command_fail, WA_MAX_NAME);  // inform client that group failed
+            print_create_group(true, false, sender->name,  *(context->name)); // Print fail message
         }
         else
         {
-            write(fd, auth, WA_MAX_NAME);
+            write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
+            print_create_group(true, true, sender->name,  *(context->name)); // Print success message
         }
     }
     return EXIT_SUCCESS;

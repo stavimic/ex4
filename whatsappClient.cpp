@@ -99,7 +99,7 @@ int verify_send(clientContext* context)
         i++;
     }
 
-    if(strcmp(context->input_name->c_str(), context->client_name) == 0)
+    if(strcmp(context->input_name->c_str(), context->client_name) == 0) // Verify client isn't sending to himself
     {
         print_send(false, false, context->client_name, *(context->input_name), " ");
     }
