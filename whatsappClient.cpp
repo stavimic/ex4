@@ -9,38 +9,29 @@
 #include <iterator>
 #include <iostream>
 #include <sys/select.h>
+#include <algorithm>
 
 // =======================  Macros & Globals  ============================= //
 #define MAX_QUEUED 10
 #define FAIL_CODE (-1)
 
-char* name_buffer;
-char* msg_buffer;
 char * auth = const_cast<char *>("auth_success");
 char * command_fail = const_cast<char *>("command_fail");
+
+struct clientContext{
+    char *name_buffer;
+    char *msg_buffer;
+    command_type commandT;
+    std::string *input_name;
+    std::string *msg;
+    std::vector<std::string> *recipients;
+    char* client_name;
+};
 
 // ======================================================================= //
 
 
-template<typename Out>
-void split2(const std::string &s, char delim, Out result)
-{
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim))
-    {
-        *(result++) = item;
-    }
-}
-
-std::vector<std::string> split2(std::string &s, char delim)
-{
-    std::vector<std::string> elems;
-    split2(s, delim, std::back_inserter(elems));
-    return elems;
-}
-
-int call_socket(const char *hostname,  int portnum)
+int call_socket(clientContext* context, const char *hostname,  int portnum)
 {
     struct sockaddr_in sa;
     struct hostent *hp;
@@ -67,11 +58,11 @@ int call_socket(const char *hostname,  int portnum)
         return FAIL_CODE;
     }
 
-    write(server_socket, name_buffer, WA_MAX_NAME);
-    bzero(name_buffer, WA_MAX_NAME);
-    read(server_socket, name_buffer, WA_MAX_NAME);
-    std::cout << name_buffer << std::endl;
-    if (strcmp(name_buffer, auth) == 0){
+    write(server_socket, context->name_buffer, WA_MAX_NAME);
+    bzero(context->name_buffer, WA_MAX_NAME);
+    read(server_socket, context->name_buffer, WA_MAX_NAME);
+    std::cout << context->name_buffer << std::endl;
+    if (strcmp(context->name_buffer, auth) == 0){
         print_connection();
     }
     else{
@@ -81,26 +72,130 @@ int call_socket(const char *hostname,  int portnum)
     return server_socket;
 }
 
+//int auth_func(int server)
+//{
+//    read(server, name_buffer, WA_MAX_NAME);
+//    std::cout << name_buffer << std::endl;
+//    if (strcmp(name_buffer, auth) == 0){
+//        print_connection();
+//    }
+//    else{
+//        //print duplicate name
+//        print_fail_connection();
+//    }
+//
+//}
 
-//int read_message(int fd)
+int verify_send(clientContext* context)
+{
+    int i = 0;
+    while((*(context->input_name))[i])
+    {
+        if (! std::isalnum((*(context->input_name))[i]))
+        {
+            print_create_group(false, false, "",*(context->input_name));
+            return FAIL_CODE;
+        }
+        i++;
+    }
+
+    if(strcmp(context->input_name->c_str(), context->client_name) == 0)
+    {
+        print_send(false, false, context->client_name, *(context->input_name), " ");
+    }
+    return EXIT_SUCCESS;
+}
+int verify_create_group(clientContext* context)
+{
+    int i = 0;
+    if(context->recipients->size() < 2)
+    {
+        print_create_group(false, false, "",*(context->input_name));
+        return FAIL_CODE;
+    }
+    while((*(context->input_name))[i])
+    {
+        if (! std::isalnum((*(context->input_name))[i]))
+        {
+            print_create_group(false, false, "",*(context->input_name));
+            return FAIL_CODE;
+        }
+        i++;
+    }
+
+    std::sort(context->recipients->begin(), context->recipients->end());
+    auto uniqCnt = std::unique(context->recipients->begin(), context->recipients->end()) - context->recipients->begin();
+    if(uniqCnt < 2)
+    {
+        print_create_group(false, false, "",*(context->input_name));
+        return FAIL_CODE;
+    }
+    return EXIT_SUCCESS;
+
+}
+
+int verify_who(clientContext* context){}
+
+int verify_exit(clientContext* context){}
+
+int verify_input(clientContext* context, int fd, int dest){
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    read(fd, context->msg_buffer, WA_MAX_MESSAGE);
+
+    parse_command(context->msg_buffer, context->commandT,
+                  *(context->input_name), *(context->msg), *(context->recipients));
+
+    if (context->commandT == INVALID)
+    {
+        print_invalid_input();
+    }
+
+    switch (context->commandT){
+        case SEND:
+            verify_send(context);
+            break;
+        case CREATE_GROUP:
+            verify_create_group(context);
+        case WHO:
+
+        case EXIT:
+
+        default:
+            break;
+    }
+
+    send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);  // Forward msg to server
 
 
+
+}
 
 int main(int argc, char** argv)
 {
     int server;
-
-    name_buffer = new char[WA_MAX_NAME];
-    msg_buffer = new char[WA_MAX_MESSAGE];
     char *client_name = argv[1];
     const char *host_name = argv[2];
     int port_num = atoi(argv[3]);
 
+    clientContext context;
+    command_type T;
+    std::string* name = new std::string;
+    std::string* message = new std::string;
+    std::vector<std::string>* recipients = new std::vector<std::string>;
 
-    name_buffer = client_name;
+    context = {
+            new char[WA_MAX_NAME],
+            new char[WA_MAX_MESSAGE],
+            T,
+            name,
+            message,
+            recipients,
+            client_name
+    };
 
-    server = call_socket(host_name, port_num);
-    bzero(name_buffer, WA_MAX_NAME);
+    context.name_buffer = client_name;
+    server = call_socket(&context, host_name, port_num);
+    bzero(context.name_buffer, WA_MAX_NAME);
 
     fd_set clientsfds;
     fd_set readfds;
@@ -119,10 +214,11 @@ int main(int argc, char** argv)
 //        std::cout << "In Select Client" << std::endl;
         if (FD_ISSET(STDIN_FILENO, &readfds))
         {
-            bzero(msg_buffer, WA_MAX_MESSAGE);
-            read(STDIN_FILENO, msg_buffer, WA_MAX_MESSAGE);
+            verify_input(&context, STDIN_FILENO, server);
+
+//            auth_func(server);
+
             // todo: Check if message is valid and if not print ERROR -----
-            send(server, msg_buffer, WA_MAX_MESSAGE, 0);  // Forward msg to server
 
             // todo: receive feedback from server if the sending succeeded and output SUCCESS / ERROR
         }
@@ -130,10 +226,10 @@ int main(int argc, char** argv)
         if (FD_ISSET(server, &readfds))
         {
             std::cout << "in else" << std::endl;
-            bzero(msg_buffer, WA_MAX_MESSAGE);
-            read(server, msg_buffer, WA_MAX_MESSAGE);
+            bzero(context.msg_buffer, WA_MAX_MESSAGE);
+            read(server, context.msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
-            std::cout<<msg_buffer<<std::endl;  // Print the given message
+            std::cout<<context.msg_buffer<<std::endl;  // Print the given message
         }
     }
 
