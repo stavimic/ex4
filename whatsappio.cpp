@@ -25,6 +25,14 @@ void print_client_usage() {
     printf("Usage: whatsappClient clientName serverAddress serverPort\n");
 }
 
+
+/*
+ * Description: Prints to the screen the messages of "create_group" command
+ * server: true for server, false for client
+ * success: Whether the operation was successful
+ * client: Client name
+ * group: Group name
+*/
 void print_create_group(bool server, bool success, 
                         const std::string& client, const std::string& group) {
     if(server) {
@@ -121,7 +129,7 @@ void parse_command(const std::string& command, command_type& commandT,
     name.clear();
     message.clear();
     clients.clear();
-    
+
     strcpy(c, command.c_str());
     s = strtok_r(c, " ", &saveptr);
     
