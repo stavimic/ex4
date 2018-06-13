@@ -130,6 +130,7 @@ int connectNewClient(serverContext* context, int fd)
 
     print_message(name, "Connected");
     write(fd, auth, WA_MAX_NAME);
+    return EXIT_SUCCESS;
 
 }
 
@@ -167,11 +168,25 @@ int getFdByName(serverContext* context, std::string& name){
     return FAIL_CODE;
 }
 
+
+Group* getGroupByName(serverContext* context, std::string& name)
+{
+    for(auto &group: *(context->server_groups)){
+        if(group->group_name == name)
+        {
+            return group;
+        }
+    }
+    return nullptr;
+
+}
+
+
 void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
 
 //    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    context->msg_buffer = const_cast<char *>(msg.c_str());
+//    context->msg_buffer = const_cast<char *>(msg.c_str());
     Client* origin_client = get_client_by_fd(context, origin_fd); // todo check if nullptr
     std::string final_msg = origin_client->name + ": " + msg;
     send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
@@ -239,7 +254,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
         group_members->push_back(cur_client);
     }
     Group* new_group = new Group();
-    *new_group = {(*(context->name), group_members};
+    *new_group = {*(context->name), group_members};
     (context->server_groups)->push_back(new_group);
     return EXIT_SUCCESS;
 }
@@ -256,10 +271,36 @@ int handleClientRequest(serverContext* context, int fd)
         // update client
     }
 
-    if(context->commandT == SEND){
+    if(context->commandT == SEND)
+    {
         int dest_fd = getFdByName(context, *(context->name));
-        // if not -1
-        send_msg(context, dest_fd, *(context->msg), fd);
+        if(dest_fd != FAIL_CODE)
+        {
+            send_msg(context, dest_fd, *(context->msg), fd);
+            return EXIT_SUCCESS;
+        }
+
+        // Check if the group exists:
+        Group* curGroup = getGroupByName(context, *(context->name));
+        if(curGroup != nullptr)
+        {
+            Client* sender = get_client_by_fd(context, fd);
+            for(auto member: *(curGroup->members))
+            {
+                if(member->name != sender->name)
+                {
+                    std::string final_msg = sender->name + ": " + *(context->msg);
+                    send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+                }
+            }
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            return FAIL_CODE; // todo ERROR
+        }
+
+
     }
 
     else if (context->commandT == CREATE_GROUP)
