@@ -331,6 +331,7 @@ int handleClientRequest(serverContext* context, int fd)
                     write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
                     return FAIL_CODE;
                 }
+
                 write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
                 return EXIT_SUCCESS;
             }
