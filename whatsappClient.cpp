@@ -31,6 +31,36 @@ struct clientContext{
 // ======================================================================= //
 
 
+/**
+ * Remove "/n" from message
+ * @param message
+ * @return
+ */
+std::string trim_message(std::string&  message)
+{
+    std::string trimmed = std::string(message);
+    long len = trimmed.length();
+    std::string sub = trimmed.substr(len - 1);
+
+    if( (len >= 1) & (sub == "\n"))
+    {
+        trimmed = trimmed.substr(0, len - 1);
+    }
+    return trimmed;
+}
+
+int free_resources(clientContext* context){
+    context->recipients->clear();
+    delete context->recipients;
+    delete context->input_name;
+    delete context->msg;
+    delete context->client_name;
+    delete context->name_buffer;
+    delete context->msg_buffer;
+    delete context;
+
+}
+
 int call_socket(clientContext* context, const char *hostname,  int portnum)
 {
     struct sockaddr_in sa;
@@ -95,6 +125,7 @@ int verify_send(clientContext* context)
     }
     return EXIT_SUCCESS;
 }
+
 int verify_create_group(clientContext* context)
 {
     int i = 0;
@@ -163,12 +194,14 @@ int verify_input(clientContext* context, int fd, int dest){
     if (ans == FAIL_CODE)
     {
         system_call_error("send");
+        free_resources(context);
         exit(1);
     }
 
     if(recv(dest, context->name_buffer, WA_MAX_NAME, 0) == FAIL_CODE)
     {
         system_call_error("recv");
+        free_resources(context);
         exit(1);
     }
 
@@ -187,6 +220,12 @@ int verify_input(clientContext* context, int fd, int dest){
         }
         case WHO:
         {
+        {
+            print_create_group(false, strcmp(context->name_buffer, auth) == 0, context->client_name,
+                               *context->input_name);
+            break;
+        }
+        case WHO: {
             recv(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
             std::string s = "create_group GGG " + std::string(context->msg_buffer);
             parse_command(s, context->commandT,
@@ -195,7 +234,9 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
         }
         case EXIT:
-            break;
+            print_exit(strcmp(context->name_buffer, auth) == 0, context->client_name);
+            free_resources(context);
+            exit(0);
         default:
             break;
     }
@@ -212,6 +253,7 @@ int main(int argc, char** argv)
     if (argc != NUM_OF_ARGS)
     {
         print_client_usage();
+        exit(0);
     }
     clientContext context;
     command_type T = INVALID;
