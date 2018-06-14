@@ -68,6 +68,7 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     int server_socket;
     if ((hp= gethostbyname (hostname)) == nullptr)
     {
+        system_call_error("gethostbyname");
         return FAIL_CODE;
     }
     memset(&sa,0,sizeof(sa));
@@ -78,13 +79,13 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
 
     if ((server_socket = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0)
     {
-        std::cout << "Problem Socket" << std::endl;
+        system_call_error("socket");
         return FAIL_CODE;
     }
     if (connect(server_socket, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
         close(server_socket);
-        std::cout<<"closing, connect didn't succeed in the client side"<<std::endl;
+        system_call_error("connect");
         return FAIL_CODE;
     }
 
@@ -110,7 +111,7 @@ int verify_send(clientContext* context)
     std::string cur_msg = trim_message(*(context->msg));
     while(cur_msg[i])
     {
-        if (! std::isalnum(cur_msg[i]))
+        if (!std::isalnum(cur_msg[i]) and (cur_msg[i] != ' '))
         {
             print_send(false, false, context->client_name, trim_message(*(context->msg)), " ");
             return FAIL_CODE;
@@ -120,7 +121,7 @@ int verify_send(clientContext* context)
 
     if(strcmp(context->input_name->c_str(), context->client_name) == 0) // Verify client isn't sending to himself
     {
-        print_send(false, false, context->client_name, *(context->input_name), " ");
+        print_send(false, false, context->client_name, trim_message(*(context->input_name)), " ");
         return FAIL_CODE;
     }
     return EXIT_SUCCESS;
@@ -134,7 +135,7 @@ int verify_create_group(clientContext* context)
     {
         if (! std::isalnum((*(context->input_name))[i]))
         {
-            print_create_group(false, false, "",*(context->input_name));
+            print_create_group(false, false, "",trim_message(*(context->input_name)));
             return FAIL_CODE;
         }
         i++;
@@ -145,7 +146,7 @@ int verify_create_group(clientContext* context)
 
     if(uniqCnt < 2)
     {
-        print_create_group(false, false, "",*(context->input_name));
+        print_create_group(false, false, "",trim_message(*(context->input_name)));
         return FAIL_CODE;
     }
     return EXIT_SUCCESS;
@@ -280,7 +281,7 @@ int main(int argc, char** argv)
         readfds = clientsfds;
         if (select(MAX_QUEUED + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
-//            terminateServer();
+            system_call_error("select");
             return FAIL_CODE;
         }
 
@@ -293,7 +294,6 @@ int main(int argc, char** argv)
         {
             bzero(context.msg_buffer, WA_MAX_INPUT);
             read(server, context.msg_buffer, WA_MAX_INPUT);
-            // todo Check if message is valid -----
             if(strcmp(shut_down_command, context.msg_buffer) == 0){
                 free_resources(&context);
                 exit(EXIT_FAILURE);
