@@ -15,9 +15,10 @@
 #define MAX_QUEUED 10
 #define FAIL_CODE (-1)
 #define NUM_OF_ARGS 4
-char * auth = const_cast<char *>("auth_success");
-char * command_fail = const_cast<char *>("command_fail");
-char * duplicate = const_cast<char *>("dup");
+char * auth = const_cast<char *>("$auth_success");
+char * command_fail = const_cast<char *>("$command_fail");
+char * duplicate = const_cast<char *>("$dup");
+char * shut_down_command = const_cast<char *>("$exit");
 struct clientContext{
     char *name_buffer;
     char *msg_buffer;
@@ -49,16 +50,15 @@ std::string trim_message(std::string&  message)
     return trimmed;
 }
 
-int free_resources(clientContext* context){
+int free_resources(clientContext* context)
+{
     context->recipients->clear();
     delete context->recipients;
     delete context->input_name;
     delete context->msg;
-    delete context->client_name;
     delete context->name_buffer;
     delete context->msg_buffer;
-    delete context;
-
+    return EXIT_SUCCESS;
 }
 
 int call_socket(clientContext* context, const char *hostname,  int portnum)
