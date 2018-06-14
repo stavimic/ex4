@@ -157,8 +157,8 @@ int verify_who(clientContext* context){return 0;}
 int verify_exit(clientContext* context){return 0;}
 
 int verify_input(clientContext* context, int fd, int dest){
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    read(fd, context->msg_buffer, WA_MAX_MESSAGE);
+    bzero(context->msg_buffer, WA_MAX_INPUT);
+    read(fd, context->msg_buffer, WA_MAX_INPUT);
 
     parse_command(context->msg_buffer, context->commandT,
                   *(context->input_name), *(context->msg), *(context->recipients));
@@ -189,7 +189,7 @@ int verify_input(clientContext* context, int fd, int dest){
     }
 
 
-    ssize_t ans = send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
+    ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
 
     if (ans == FAIL_CODE)
     {
@@ -220,7 +220,7 @@ int verify_input(clientContext* context, int fd, int dest){
         }
         case WHO:
         {
-            recv(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
+            recv(dest, context->msg_buffer, WA_MAX_INPUT, 0);
             std::string s = "create_group GGG " + std::string(context->msg_buffer);
             parse_command(s, context->commandT,
                           *(context->input_name), *(context->msg), *(context->recipients));
@@ -257,7 +257,7 @@ int main(int argc, char** argv)
 
     context = {
             new char[WA_MAX_NAME],
-            new char[WA_MAX_MESSAGE],
+            new char[WA_MAX_INPUT],
             T,
             name,
             message,
@@ -291,8 +291,8 @@ int main(int argc, char** argv)
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
         {
-            bzero(context.msg_buffer, WA_MAX_MESSAGE);
-            read(server, context.msg_buffer, WA_MAX_MESSAGE);
+            bzero(context.msg_buffer, WA_MAX_INPUT);
+            read(server, context.msg_buffer, WA_MAX_INPUT);
             // todo Check if message is valid -----
             if(strcmp(shut_down_command, context.msg_buffer) == 0){
                 free_resources(&context);
