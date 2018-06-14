@@ -133,7 +133,6 @@ int connectNewClient(serverContext* context, int fd)
         write(fd, duplicate, WA_MAX_NAME);
         return FAIL_CODE;
     }
-
     Client* new_client = new Client();
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
@@ -254,19 +253,24 @@ int handel_group_creation(serverContext* context, int origin_fd)
     std::vector<Client*>* group_members = new std::vector<Client*>();
     Client* admin = get_client_by_fd(context, origin_fd);
     group_members->push_back(admin);  // Add the admin to the group
-
+    bool flag = true;
+    // Check if the is already in the group:
     for(std::string& name: *(context->recipients))
     {
         Client* cur_client = get_client_by_name(context, name);
         for(auto& member: *group_members)
         {
-            if (cur_client->name == name)
+            if (member->name == name)
             {
-                break;
+                flag = false;  // No need to add the client to the group
             }
         }
         // If the client isn't already in the group, add it:
-        group_members->push_back(cur_client);
+        if(flag)
+        {
+            group_members->push_back(cur_client);
+        }
+        flag = true;
     }
     Group* new_group = new Group();
     *new_group = {*(context->name), group_members};
@@ -390,8 +394,8 @@ int handleClientRequest(serverContext* context, int fd)
             // Un-register the client from all groups:
             for(Group* group : *context->server_groups)
             {
-                auto iter = std::begin(group->members);
-                while (iter != std::end(group->members))
+                auto iter = std::begin(*((*group).members));
+                while (iter != std::end(*((*group).members)))
                 {
                     if ((*iter)->name == name_to_delete)
                     {
@@ -403,9 +407,6 @@ int handleClientRequest(serverContext* context, int fd)
             }
             write(fd, auth, WA_MAX_NAME);  // inform client that un-registering succeeded
             print_exit(true, name_to_delete);
-
-
-
         }
             break;
 
@@ -418,7 +419,6 @@ int handleClientRequest(serverContext* context, int fd)
 int select_flow(int connection_socket)
 {
     serverContext context;
-    command_type T;
     std::string* name = new std::string;
     std::string* message = new std::string;
     std::vector<std::string>* recipients = new std::vector<std::string>;
@@ -430,7 +430,7 @@ int select_flow(int connection_socket)
         new char[WA_MAX_MESSAGE],
         new std::vector<Client*>(),
         new std::vector<Group*>(),
-        T,
+        INVALID,
         name,
         message,
         recipients
