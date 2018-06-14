@@ -68,6 +68,7 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     int server_socket;
     if ((hp= gethostbyname (hostname)) == nullptr)
     {
+        system_call_error("gethostbyname");
         return FAIL_CODE;
     }
     memset(&sa,0,sizeof(sa));
@@ -78,13 +79,13 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
 
     if ((server_socket = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0)
     {
-        std::cout << "Problem Socket" << std::endl;
+        system_call_error("socket");
         return FAIL_CODE;
     }
     if (connect(server_socket, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
         close(server_socket);
-        std::cout<<"closing, connect didn't succeed in the client side"<<std::endl;
+        system_call_error("connect");
         return FAIL_CODE;
     }
 
@@ -280,7 +281,7 @@ int main(int argc, char** argv)
         readfds = clientsfds;
         if (select(MAX_QUEUED + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
-//            terminateServer();
+            system_call_error("select");
             return FAIL_CODE;
         }
 
@@ -293,7 +294,6 @@ int main(int argc, char** argv)
         {
             bzero(context.msg_buffer, WA_MAX_INPUT);
             read(server, context.msg_buffer, WA_MAX_INPUT);
-            // todo Check if message is valid -----
             if(strcmp(shut_down_command, context.msg_buffer) == 0){
                 free_resources(&context);
                 exit(EXIT_FAILURE);
