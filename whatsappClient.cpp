@@ -293,7 +293,11 @@ int main(int argc, char** argv)
         {
             bzero(context.msg_buffer, WA_MAX_MESSAGE);
             read(server, context.msg_buffer, WA_MAX_MESSAGE);
-            // todo Check if message is valid -----
+            if(strcmp(shut_down_command, context.msg_buffer) == 0)
+            {
+                free_resources(&context);
+                exit(1);
+            }
             std::cout<<context.msg_buffer;  // Print the given message
         }
     }

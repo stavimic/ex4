@@ -5,7 +5,7 @@
 #include "whatsappio.h"
 #include <string>
 #include <sstream>
-
+#include <unistd.h>
 #include <vector>
 #include <iterator>
 #include <iostream>
@@ -24,17 +24,20 @@ char * shut_down_command = const_cast<char *>("$exit");
 
 // ======================================================================= //
 
-struct Client{
+struct Client
+{
     std::string name;
     int client_socket;
 };
 
-struct Group{
+struct Group
+{
     std::string group_name;
     std::vector<Client*>* members;
 };
 
-struct serverContext{
+struct serverContext
+{
     char *name_buffer;
     char *msg_buffer;
     std::vector<Client*>* server_members;
@@ -45,6 +48,20 @@ struct serverContext{
     std::string *msg;
     std::vector<std::string> *recipients;
 };
+
+void free_resources(serverContext* context)
+{
+    delete context-> msg_buffer;
+    delete context-> name_buffer;
+    context-> server_groups->clear();
+    context-> server_members->clear();
+    delete context-> name;
+    delete context-> msg;
+    delete context-> recipients;
+    delete context->server_groups;
+    delete context->server_groups;
+}
+
 
 int read_data(int s, char *buf, int n)
 {
@@ -123,18 +140,6 @@ Client* get_client_by_name(serverContext* context, std::string& name)
     return nullptr;
 }
 
-void free_resources(serverContext* context)
-{
-    delete context-> msg_buffer;
-    delete context-> name_buffer;
-    context-> server_groups->clear();
-    context-> server_members->clear();
-    delete context-> name;
-    delete context-> msg;
-    delete context-> recipients;
-    delete context->server_groups;
-    delete context->server_groups;
-}
 
 int connectNewClient(serverContext* context, int fd)
 {
@@ -477,8 +482,6 @@ int serverStdInput(serverContext* context)
 }
 
 
-
-
 int select_flow(int connection_socket)
 {
     serverContext context;
@@ -511,8 +514,8 @@ int select_flow(int connection_socket)
         readfds = clientsfds;
         if (select(MAX_QUEUD + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
-//            terminateServer();
-            return FAIL_CODE;
+            system_call_error("select");
+            exit(EXIT_FAILURE);
         }
 
         if (FD_ISSET(STDIN_FILENO, &readfds))  // Message from stdin
@@ -557,8 +560,7 @@ int main(int argc, char** argv)
     std::cout << port_number << std::endl ;
     int fd = establish(port_number);
     select_flow(fd);
-
-    //todo return Exit Success / Failure ----------------
+    return EXIT_SUCCESS; // todo check if this is what we need to return
 }
 
 
