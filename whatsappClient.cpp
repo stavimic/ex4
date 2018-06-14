@@ -88,7 +88,7 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
         return FAIL_CODE;
     }
 
-    write(server_socket, context->name_buffer, WA_MAX_NAME);
+    send(server_socket, context->name_buffer, WA_MAX_NAME, 0);
     bzero(context->name_buffer, WA_MAX_NAME);
     read(server_socket, context->name_buffer, WA_MAX_NAME);
 //    std::cout << context->name_buffer << std::endl;

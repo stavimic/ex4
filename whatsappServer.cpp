@@ -149,7 +149,7 @@ Client* get_client_by_name(serverContext* context, std::string& name)
 int connectNewClient(serverContext* context, int fd)
 {
     bzero(context->name_buffer, WA_MAX_NAME);
-    read_data(fd, context->name_buffer, WA_MAX_NAME);
+    read(fd, context->name_buffer, WA_MAX_NAME);
     // check for duplicate
     std::string name = std::string(context->name_buffer);
     if(get_client_by_name(context, name) != nullptr)
@@ -320,7 +320,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
 int handleClientRequest(serverContext* context, int fd)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
-    read_data(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
+    read(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -508,7 +508,7 @@ int handleClientRequest(serverContext* context, int fd)
 int serverStdInput(serverContext* context)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
-    if(read_data(STDIN_FILENO, context->name_buffer, 5) == FAIL_CODE)  // Get command from STDIN
+    if(read(STDIN_FILENO, context->name_buffer, 5) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
         exit(1);
