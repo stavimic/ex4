@@ -104,15 +104,15 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     return server_socket;
 }
 
-
 int verify_send(clientContext* context)
 {
     int i = 0;
-    while((*(context->input_name))[i])
+    std::string cur_msg = trim_message(*(context->msg));
+    while(cur_msg[i])
     {
-        if (! std::isalnum((*(context->input_name))[i]))
+        if (! std::isalnum(cur_msg[i]))
         {
-            print_create_group(false, false, "",*(context->input_name));
+            print_send(false, false, context->client_name, trim_message(*(context->msg)), " ");
             return FAIL_CODE;
         }
         i++;
@@ -195,7 +195,7 @@ int verify_input(clientContext* context, int fd, int dest){
     {
         system_call_error("send");
         free_resources(context);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if(recv(dest, context->name_buffer, WA_MAX_NAME, 0) == FAIL_CODE)
@@ -293,12 +293,13 @@ int main(int argc, char** argv)
         {
             bzero(context.msg_buffer, WA_MAX_MESSAGE);
             read(server, context.msg_buffer, WA_MAX_MESSAGE);
-            if(strcmp(shut_down_command, context.msg_buffer) == 0)
-            {
+            // todo Check if message is valid -----
+            if(strcmp(shut_down_command, context.msg_buffer) == 0){
                 free_resources(&context);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
             std::cout<<context.msg_buffer;  // Print the given message
+
         }
     }
 
