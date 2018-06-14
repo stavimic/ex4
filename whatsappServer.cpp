@@ -5,7 +5,7 @@
 #include "whatsappio.h"
 #include <string>
 #include <sstream>
-
+#include <unistd.h>
 #include <vector>
 #include <iterator>
 #include <iostream>
@@ -24,17 +24,20 @@ char * shut_down_command = const_cast<char *>("$exit");
 
 // ======================================================================= //
 
-struct Client{
+struct Client
+{
     std::string name;
     int client_socket;
 };
 
-struct Group{
+struct Group
+{
     std::string group_name;
     std::vector<Client*>* members;
 };
 
-struct serverContext{
+struct serverContext
+{
     char *name_buffer;
     char *msg_buffer;
     std::vector<Client*>* server_members;
@@ -46,13 +49,28 @@ struct serverContext{
     std::vector<std::string> *recipients;
 };
 
+void free_resources(serverContext* context)
+{
+    delete context-> msg_buffer;
+    delete context-> name_buffer;
+    context-> server_groups->clear();
+    context-> server_members->clear();
+    delete context-> name;
+    delete context-> msg;
+    delete context-> recipients;
+    delete context->server_groups;
+    delete context->server_members;
+}
+
+
 int read_data(int s, char *buf, int n)
 {
     int bcount; /* counts bytes read */
     int br; /* bytes read this pass */
     bcount= 0; br= 0;
     while (bcount < n)
-    { /* loop until full buffer */
+    {
+        /* loop until full buffer */
         br = read(s, buf, n-bcount);
         if ((br > 0))
         {
@@ -61,7 +79,8 @@ int read_data(int s, char *buf, int n)
         }
         if (br < 0)
         {
-            return FAIL_CODE;
+            system_call_error("read");
+            exit(EXIT_FAILURE);
         }
     }
     return bcount;
@@ -92,13 +111,16 @@ int establish(unsigned short portnum)
 
     /* create socket */
     if ((s= socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return FAIL_CODE;
+    {
+        close(s);
+        system_call_error("socket");
+        exit(EXIT_FAILURE);
+    }
     if (bind(s, (struct sockaddr *)&sa , sizeof(struct sockaddr_in)) < 0)
     {
         close(s);
-        std::cout<<"closing- bind did't succeed"<<std::endl;
-
-        return FAIL_CODE;
+        system_call_error("bind");
+        exit(EXIT_FAILURE);
     }
     listen(s, MAX_QUEUD); /* max # of queued connects */
     return s;
@@ -123,18 +145,6 @@ Client* get_client_by_name(serverContext* context, std::string& name)
     return nullptr;
 }
 
-void free_resources(serverContext* context)
-{
-    delete context-> msg_buffer;
-    delete context-> name_buffer;
-    context-> server_groups->clear();
-    context-> server_members->clear();
-    delete context-> name;
-    delete context-> msg;
-    delete context-> recipients;
-    delete context->server_groups;
-    delete context->server_groups;
-}
 
 int connectNewClient(serverContext* context, int fd)
 {
@@ -145,14 +155,22 @@ int connectNewClient(serverContext* context, int fd)
     if(get_client_by_name(context, name) != nullptr)
     {
         // Client name already exists, inform the client that the creation failed
-        write(fd, duplicate, WA_MAX_NAME);
+        if(write(fd, duplicate, WA_MAX_NAME) < 0 )
+        {
+            system_call_error("write");
+            exit(EXIT_FAILURE);
+        }
         return FAIL_CODE;
     }
     Client* new_client = new Client();
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
     print_connection_server(name);
-    write(fd, auth, WA_MAX_NAME);
+    if(write(fd, auth, WA_MAX_NAME) < 0)
+    {
+        system_call_error("write");
+        exit(EXIT_FAILURE);
+    }
     return EXIT_SUCCESS;
 
 }
@@ -188,7 +206,8 @@ std::string trim_message(std::string&  message)
     return trimmed;
 }
 
-int getFdByName(serverContext* context, std::string& name){
+int getFdByName(serverContext* context, std::string& name)
+{
     for(auto &client: *(context->server_members)){
         if(client->name == name)
         {
@@ -214,15 +233,12 @@ Group* getGroupByName(serverContext* context, std::string& name)
 
 int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
-
-//    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-//    context->msg_buffer = const_cast<char *>(msg.c_str());
-    Client* origin_client = get_client_by_fd(context, origin_fd); // todo check if nullptr
-    Client* dest = get_client_by_fd(context, fd); // todo check if nullptr
+    Client* origin_client = get_client_by_fd(context, origin_fd);
+    Client* dest = get_client_by_fd(context, fd);
 
     std::string final_msg = origin_client->name + ": " + msg;
 
-    if(send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0) == FAIL_CODE)
+    if(send(fd, final_msg.c_str(), WA_MAX_INPUT, 0) == FAIL_CODE)
     {
         system_call_error("send");
         return FAIL_CODE;
@@ -303,8 +319,8 @@ int handel_group_creation(serverContext* context, int origin_fd)
  */
 int handleClientRequest(serverContext* context, int fd)
 {
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);  // Get command
+    bzero(context->msg_buffer, WA_MAX_INPUT);
+    read_data(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -328,11 +344,18 @@ int handleClientRequest(serverContext* context, int fd)
             {
                 if(send_msg(context, dest_fd, *(context->msg), fd) == FAIL_CODE)
                 {
-                    write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+                    if(write(fd, command_fail, WA_MAX_NAME) < 0)  // inform client that sending failed
+                    {
+                        system_call_error("write");
+                        exit(EXIT_FAILURE);
+                    }
                     return FAIL_CODE;
                 }
-
-                write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
+                if(write(fd, auth, WA_MAX_NAME) < 0)  // inform client that sending succeeded
+                {
+                    system_call_error("write");
+                    exit(EXIT_FAILURE);
+                }
                 return EXIT_SUCCESS;
             }
 
@@ -354,7 +377,11 @@ int handleClientRequest(serverContext* context, int fd)
                 {
                     std::string trimmed_msg = trim_message(*(context->msg));
                     print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
-                    write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+                    if(write(fd, command_fail, WA_MAX_NAME) < 0) // inform client that sending failed
+                    {
+                        system_call_error("write");
+                        exit(EXIT_FAILURE);
+                    }
                     return FAIL_CODE;
                 }
                 for(auto member: *(curGroup->members))
@@ -362,18 +389,27 @@ int handleClientRequest(serverContext* context, int fd)
                     if(member->name != sender->name)
                     {
                         std::string final_msg = sender->name + ": " + *(context->msg);
-                        send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+                        send(member->client_socket, final_msg.c_str(), WA_MAX_INPUT, 0);
                     }
                 }
                 print_send(true, true, sender->name, *(context->name), trim_message(*(context->msg))); // message success
-                write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
+                if(write(fd, auth, WA_MAX_NAME) < 0 )  // inform client that sending succeeded
+                {
+                    system_call_error("write");
+                    exit(EXIT_FAILURE);
+                }
                 return EXIT_SUCCESS;
             }
             else
             {
                 std::string trimmed_msg = trim_message(*(context->msg));
                 print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
-                write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+                // inform client that sending failed:
+                if (write(fd, command_fail, WA_MAX_NAME)< 0)
+                {
+                    system_call_error("write");
+                    exit(EXIT_FAILURE);
+                }
                 return FAIL_CODE;
             }
         }
@@ -382,12 +418,20 @@ int handleClientRequest(serverContext* context, int fd)
         {
             if(handel_group_creation(context, fd) == FAIL_CODE)
             {
-                write(fd, command_fail, WA_MAX_NAME);  // inform client that group failed
+                if(write(fd, command_fail, WA_MAX_NAME)< 0 )  // inform client that group failed
+                {
+                    system_call_error("write");
+                    exit(EXIT_FAILURE);
+                }
                 print_create_group(true, false, sender->name,  *(context->name)); // Print fail message
             }
             else
             {
-                write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
+                if(write(fd, auth, WA_MAX_NAME)<0)  // inform client that group succeeded
+                {
+                    system_call_error("write");
+                    exit(EXIT_FAILURE);
+                }
                 print_create_group(true, true, sender->name,  *(context->name)); // Print success message
             }
             break;
@@ -403,8 +447,16 @@ int handleClientRequest(serverContext* context, int fd)
                 total += ",";
             }
             total = total.substr(0, total.length() - 1);
-            write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
-            write(fd, total.c_str(), WA_MAX_MESSAGE);  // send the list of clients
+            if(write(fd, auth, WA_MAX_NAME)<0)  // inform client that group succeeded
+            {
+                system_call_error("write");
+                exit(EXIT_FAILURE);
+            }
+            if(write(fd, total.c_str(), WA_MAX_INPUT)<0)  // send the list of clients
+            {
+                system_call_error("write");
+                exit(EXIT_FAILURE);
+            }
             print_who_server(sender->name);
             break;
         }
@@ -438,7 +490,11 @@ int handleClientRequest(serverContext* context, int fd)
                     ++iter;
                 }
             }
-            write(fd, auth, WA_MAX_NAME);  // inform client that un-registering succeeded
+            if(write(fd, auth, WA_MAX_NAME) < 0 )  // inform client that un-registering succeeded
+            {
+                system_call_error("write");
+                exit(EXIT_FAILURE);
+            }
             print_exit(true, name_to_delete);
         }
             break;
@@ -451,13 +507,14 @@ int handleClientRequest(serverContext* context, int fd)
 
 int serverStdInput(serverContext* context)
 {
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    if(read_data(STDIN_FILENO, context->msg_buffer, WA_MAX_MESSAGE) == FAIL_CODE)  // Get command from STDIN
+    bzero(context->msg_buffer, WA_MAX_INPUT);
+    if(read_data(STDIN_FILENO, context->name_buffer, 5) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
         exit(1);
     }
-    if(strcmp(context->msg_buffer, "EXIT"))
+    auto msg = std::string(context->name_buffer);
+    if(strcmp(trim_message(msg).c_str(), "EXIT"))
     {
         print_invalid_input();
         return FAIL_CODE;
@@ -478,8 +535,6 @@ int serverStdInput(serverContext* context)
 }
 
 
-
-
 int select_flow(int connection_socket)
 {
     serverContext context;
@@ -491,7 +546,7 @@ int select_flow(int connection_socket)
     context =
     {
         new char[WA_MAX_NAME],
-        new char[WA_MAX_MESSAGE],
+        new char[WA_MAX_INPUT],
         new std::vector<Client*>(),
         new std::vector<Group*>(),
         INVALID,
@@ -512,8 +567,8 @@ int select_flow(int connection_socket)
         readfds = clientsfds;
         if (select(MAX_QUEUD + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
-//            terminateServer();
-            return FAIL_CODE;
+            system_call_error("select");
+            exit(EXIT_FAILURE);
         }
 
         if (FD_ISSET(STDIN_FILENO, &readfds))  // Message from stdin
@@ -525,9 +580,8 @@ int select_flow(int connection_socket)
         {
             if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
-
-                std::cout << "accept_fail" << std::endl;
-                return FAIL_CODE;
+                system_call_error("accept");
+                exit(FAIL_CODE);
             }
             FD_SET(file_descriptor, &clientsfds); // add the client to the clientsfds
             connectNewClient(&context, file_descriptor);
@@ -558,8 +612,7 @@ int main(int argc, char** argv)
     std::cout << port_number << std::endl ;
     int fd = establish(port_number);
     select_flow(fd);
-
-    //todo return Exit Success / Failure ----------------
+    return EXIT_SUCCESS; // todo check if this is what we need to return
 }
 
 
