@@ -89,7 +89,7 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
         return FAIL_CODE;
     }
 
-    write(server_socket, context->name_buffer, WA_MAX_NAME);
+    send(server_socket, context->name_buffer, WA_MAX_NAME, 0);
     bzero(context->name_buffer, WA_MAX_NAME);
     read(server_socket, context->name_buffer, WA_MAX_NAME);
 //    std::cout << context->name_buffer << std::endl;
@@ -111,7 +111,7 @@ int verify_send(clientContext* context)
     std::string cur_msg = trim_message(*(context->msg));
     while(cur_msg[i])
     {
-        if (! std::isalnum(cur_msg[i]))
+        if (!std::isalnum(cur_msg[i]) and (cur_msg[i] != ' '))
         {
             print_send(false, false, context->client_name, trim_message(*(context->msg)), " ");
             return FAIL_CODE;
@@ -121,7 +121,7 @@ int verify_send(clientContext* context)
 
     if(strcmp(context->input_name->c_str(), context->client_name) == 0) // Verify client isn't sending to himself
     {
-        print_send(false, false, context->client_name, *(context->input_name), " ");
+        print_send(false, false, context->client_name, trim_message(*(context->input_name)), " ");
         return FAIL_CODE;
     }
     return EXIT_SUCCESS;
@@ -135,7 +135,7 @@ int verify_create_group(clientContext* context)
     {
         if (! std::isalnum((*(context->input_name))[i]))
         {
-            print_create_group(false, false, "",*(context->input_name));
+            print_create_group(false, false, "",trim_message(*(context->input_name)));
             return FAIL_CODE;
         }
         i++;
@@ -146,7 +146,7 @@ int verify_create_group(clientContext* context)
 
     if(uniqCnt < 2)
     {
-        print_create_group(false, false, "",*(context->input_name));
+        print_create_group(false, false, "",trim_message(*(context->input_name)));
         return FAIL_CODE;
     }
     return EXIT_SUCCESS;
