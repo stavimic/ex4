@@ -178,12 +178,14 @@ int verify_input(clientContext* context, int fd, int dest){
 
     if (ans == FAIL_CODE)
     {
-
+        system_call_error("send");
+        exit(1);
     }
 
     if(recv(dest, context->name_buffer, WA_MAX_NAME, 0) == FAIL_CODE)
     {
-
+        system_call_error("recv");
+        exit(1);
     }
 
     switch (context->commandT) {

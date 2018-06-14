@@ -121,7 +121,7 @@ void print_error(const std::string& function_name, int error_number);
 */
 void parse_command(const std::string& command, command_type& commandT, std::string& name, std::string& messsage, std::vector<std::string>& clients);
 
-void system_call_error(const std::string& name_of_call, bool server);
+void system_call_error(const std::string& name_of_call);
 
 
 #endif
