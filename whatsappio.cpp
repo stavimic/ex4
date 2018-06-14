@@ -198,7 +198,7 @@ void parse_command(const std::string& command, command_type& commandT,
             message = command.substr(name.size() + 6); // 6 = 2 spaces + "send"
         }
     }
-    else if(!strcmp(s, "who"))
+    else if((!strcmp(s, "who\n")) | (!strcmp(s, "who")))
     {
         commandT = WHO;
     }
@@ -215,6 +215,6 @@ void parse_command(const std::string& command, command_type& commandT,
 
 void system_call_error(const std::string& name_of_call)
 {
-    std::cout<<"ERROR: " << name_of_call << std::strerror(errno) << std::endl;
+    std::cout<<"ERROR: " << name_of_call << " " << errno << std::endl;
 }
 
