@@ -218,7 +218,8 @@ int verify_input(clientContext* context, int fd, int dest){
                                *context->input_name);
             break;
         }
-        case WHO: {
+        case WHO:
+        {
             recv(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
             std::string s = "create_group GGG " + std::string(context->msg_buffer);
             parse_command(s, context->commandT,
