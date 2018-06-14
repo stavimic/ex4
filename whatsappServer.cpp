@@ -207,6 +207,7 @@ int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
         print_send(true, true, origin_client->name, dest->name, msg);
         return EXIT_SUCCESS;
     }
+
     print_send(true, false, origin_client->name, dest->name, msg);
     return EXIT_FAILURE;
 }

@@ -211,3 +211,10 @@ void parse_command(const std::string& command, command_type& commandT,
         commandT = INVALID;
     }
 }
+
+
+void system_call_error(const std::string& name_of_call)
+{
+    std::cout<<"ERROR: " << name_of_call << std::strerror(errno) << std::endl;
+}
+
