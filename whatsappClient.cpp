@@ -70,7 +70,8 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     if ((hp= gethostbyname (hostname)) == nullptr)
     {
         system_call_error("gethostbyname");
-        return FAIL_CODE;
+        exit(EXIT_FAILURE);
+
     }
     memset(&sa,0,sizeof(sa));
     memcpy((char *)&sa.sin_addr , hp->h_addr , hp->h_length);
@@ -81,13 +82,15 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     if ((server_socket = socket(hp->h_addrtype, SOCK_STREAM,0)) < 0)
     {
         system_call_error("socket");
-        return FAIL_CODE;
+        exit(EXIT_FAILURE);
+
     }
     if (connect(server_socket, (struct sockaddr *)&sa , sizeof(sa)) < 0)
     {
         close(server_socket);
         system_call_error("connect");
-        return FAIL_CODE;
+        exit(EXIT_FAILURE);
+
     }
 
     send(server_socket, context->name_buffer, WA_MAX_NAME, 0);
@@ -199,10 +202,12 @@ int verify_input(clientContext* context, int fd, int dest){
     {
         system_call_error("recv");
         free_resources(context);
-        exit(1);
+        exit(EXIT_FAILURE);
+
     }
 
-    switch (context->commandT) {
+    switch (context->commandT)
+    {
         case SEND:
         {
             print_send(false, strcmp(context->name_buffer, auth) == 0, context->client_name,
@@ -279,7 +284,8 @@ int main(int argc, char** argv)
     std::string* message = new std::string;
     std::vector<std::string>* recipients = new std::vector<std::string>;
 
-    context = {
+    context = 
+    {
             new char[WA_MAX_NAME],
             new char[WA_MAX_INPUT],
             T,
@@ -305,7 +311,7 @@ int main(int argc, char** argv)
         if (select(MAX_QUEUED + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
             system_call_error("select");
-            return FAIL_CODE;
+            exit(EXIT_FAILURE);
         }
 
         if (FD_ISSET(STDIN_FILENO, &readfds))
