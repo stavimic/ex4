@@ -104,15 +104,14 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     return server_socket;
 }
 
-
 int verify_send(clientContext* context)
 {
     int i = 0;
-    while((*(context->input_name))[i])
+    while((*(context->msg))[i])
     {
-        if (! std::isalnum((*(context->input_name))[i]))
+        if (! std::isalnum((*(context->msg))[i]))
         {
-            print_create_group(false, false, "",*(context->input_name));
+            print_create_group(false, false, "", trim_message(*(context->msg)));
             return FAIL_CODE;
         }
         i++;
