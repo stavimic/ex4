@@ -59,7 +59,7 @@ void free_resources(serverContext* context)
     delete context-> msg;
     delete context-> recipients;
     delete context->server_groups;
-    delete context->server_groups;
+    delete context->server_members;
 }
 
 
@@ -457,12 +457,13 @@ int handleClientRequest(serverContext* context, int fd)
 int serverStdInput(serverContext* context)
 {
     bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    if(read_data(STDIN_FILENO, context->msg_buffer, WA_MAX_MESSAGE) == FAIL_CODE)  // Get command from STDIN
+    if(read_data(STDIN_FILENO, context->name_buffer, 5) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
         exit(1);
     }
-    if(strcmp(context->msg_buffer, "EXIT"))
+    auto msg = std::string(context->name_buffer);
+    if(strcmp(trim_message(msg).c_str(), "EXIT"))
     {
         print_invalid_input();
         return FAIL_CODE;
