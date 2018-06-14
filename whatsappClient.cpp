@@ -19,7 +19,8 @@ char * auth = const_cast<char *>("$auth_success");
 char * command_fail = const_cast<char *>("$command_fail");
 char * duplicate = const_cast<char *>("$dup");
 char * shut_down_command = const_cast<char *>("$exit");
-struct clientContext{
+struct clientContext
+{
     char *name_buffer;
     char *msg_buffer;
     command_type commandT;
@@ -107,17 +108,17 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
 
 int verify_send(clientContext* context)
 {
-    int i = 0;
-    std::string cur_msg = trim_message(*(context->msg));
-    while(cur_msg[i])
-    {
-        if (!std::isalnum(cur_msg[i]) and (cur_msg[i] != ' '))
-        {
-            print_send(false, false, context->client_name, trim_message(*(context->msg)), " ");
-            return FAIL_CODE;
-        }
-        i++;
-    }
+//    int i = 0;
+//    std::string cur_msg = trim_message(*(context->msg));
+//    while(cur_msg[i])
+//    {
+//        if (!std::isalnum(cur_msg[i]) and (cur_msg[i] != ' '))
+//        {
+//            print_send(false, false, context->client_name, trim_message(*(context->msg)), " ");
+//            return FAIL_CODE;
+//        }
+//        i++;
+//    }
 
     if(strcmp(context->input_name->c_str(), context->client_name) == 0) // Verify client isn't sending to himself
     {
@@ -153,10 +154,6 @@ int verify_create_group(clientContext* context)
 
 }
 
-int verify_who(clientContext* context){return 0;}
-
-int verify_exit(clientContext* context){return 0;}
-
 int verify_input(clientContext* context, int fd, int dest){
     bzero(context->msg_buffer, WA_MAX_INPUT);
     read(fd, context->msg_buffer, WA_MAX_INPUT);
@@ -188,7 +185,6 @@ int verify_input(clientContext* context, int fd, int dest){
         default:
             break;
     }
-
 
     ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
 
@@ -239,17 +235,44 @@ int verify_input(clientContext* context, int fd, int dest){
     return EXIT_SUCCESS;
 }
 
+
+
+bool is_client_name_legal(char* name)
+{
+    int i = 0;
+    std::string to_check = std::string(name);
+    std::string cur_msg = trim_message(to_check);
+    while(cur_msg[i])
+    {
+        if (!std::isalnum(cur_msg[i]) and (cur_msg[i] != ' '))
+        {
+            return false;
+        }
+        i++;
+    }
+    return true;
+}
+
+
 int main(int argc, char** argv)
 {
-    int server;
-    char *client_name = argv[1];
-    const char *host_name = argv[2];
-    int port_num = atoi(argv[3]);
     if (argc != NUM_OF_ARGS)
     {
         print_client_usage();
         exit(0);
     }
+
+    int server;
+    char *client_name = argv[1];
+    const char *host_name = argv[2];
+    int port_num = atoi(argv[3]);
+
+    if(!is_client_name_legal(client_name))
+    {
+        print_invalid_input();
+        exit(1);
+    }
+
     clientContext context;
     command_type T = INVALID;
     std::string* name = new std::string;

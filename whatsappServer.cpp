@@ -609,7 +609,6 @@ int main(int argc, char** argv)
         exit(0);
     }
     unsigned short port_number = atoi(argv[PORT_INDEX]);
-    std::cout << port_number << std::endl ;
     int fd = establish(port_number);
     select_flow(fd);
     return EXIT_SUCCESS; // todo check if this is what we need to return
