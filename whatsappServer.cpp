@@ -22,8 +22,6 @@ char * duplicate = const_cast<char *>("dup");
 
 // ======================================================================= //
 
-
-
 struct Client{
     std::string name;
     int client_socket;

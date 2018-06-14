@@ -14,10 +14,10 @@
 // =======================  Macros & Globals  ============================= //
 #define MAX_QUEUED 10
 #define FAIL_CODE (-1)
-
+#define NUM_OF_ARGS 4
 char * auth = const_cast<char *>("auth_success");
 char * command_fail = const_cast<char *>("command_fail");
-
+char * duplicate = const_cast<char *>("dup");
 struct clientContext{
     char *name_buffer;
     char *msg_buffer;
@@ -65,8 +65,10 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     if (strcmp(context->name_buffer, auth) == 0){
         print_connection();
     }
+    else if(strcmp(context->name_buffer, duplicate) == 0){
+        print_dup_connection();
+    }
     else{
-        //print duplicate name
         print_fail_connection();
     }
     return server_socket;
@@ -127,9 +129,9 @@ int verify_create_group(clientContext* context)
     (context->recipients)->push_back(std::string(context->client_name));
     std::sort(context->recipients->begin(), context->recipients->end());
     auto uniqCnt = std::unique(context->recipients->begin(), context->recipients->end()) - context->recipients->begin();
-    for(auto elem: *context->recipients){
-        std::cout << elem << std::endl;
-    }
+//    for(auto elem: *context->recipients){
+//        std::cout << elem << std::endl;
+//    }
     if(uniqCnt < 2)
     {
         print_create_group(false, false, "",*(context->input_name));
@@ -153,6 +155,7 @@ int verify_input(clientContext* context, int fd, int dest){
     if (context->commandT == INVALID)
     {
         print_invalid_input();
+        return FAIL_CODE;
     }
     switch (context->commandT){
         case SEND:
@@ -189,13 +192,19 @@ int verify_input(clientContext* context, int fd, int dest){
     }
 
     switch (context->commandT) {
-        case SEND:
+        case SEND:{
             print_send(false, strcmp(context->name_buffer, auth) == 0, context->client_name, context->client_name, context->client_name);
-            break;
+            break;}
         case CREATE_GROUP:
             print_create_group(false,  strcmp(context->name_buffer, auth) == 0, context->client_name, *context->input_name);
-        case WHO:
+        case WHO: {
+            recv(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
+            std::string s = "create_group GGG " + std::string(context->msg_buffer);
+            parse_command(s, context->commandT,
+                          *(context->input_name), *(context->msg), *(context->recipients));
+            print_who_client(strcmp(context->name_buffer, auth) == 0, *context->recipients);
             break;
+        }
         case EXIT:
             break;
         default:
@@ -211,7 +220,10 @@ int main(int argc, char** argv)
     char *client_name = argv[1];
     const char *host_name = argv[2];
     int port_num = atoi(argv[3]);
-
+    if (argc != NUM_OF_ARGS)
+    {
+        print_client_usage();
+    }
     clientContext context;
     command_type T = INVALID;
     std::string* name = new std::string;
@@ -250,9 +262,6 @@ int main(int argc, char** argv)
         if (FD_ISSET(STDIN_FILENO, &readfds))
         {
             verify_input(&context, STDIN_FILENO, server);
-
-//            auth_func(server);
-            // todo: Check if message is valid and if not print ERROR -----
         }
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
