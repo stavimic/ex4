@@ -173,25 +173,32 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
     }
 
-    if(send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0) != FAIL_CODE) {  // Forward msg to server
-        //todo check if fail
-        switch (context->commandT) {
-            case SEND:
-                print_send(false, true, context->client_name, context->client_name, context->client_name);
-                break;
-            case CREATE_GROUP:
-                print_create_group(false, true, context->client_name, *context->input_name);
-            case WHO:
-                break;
-            case EXIT:
-                break;
-            default:
-                break;
-        }
+
+    ssize_t ans = send(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
+
+    if (ans == FAIL_CODE)
+    {
+
     }
 
+    if(recv(dest, context->name_buffer, WA_MAX_NAME, 0) == FAIL_CODE)
+    {
 
+    }
 
+    switch (context->commandT) {
+        case SEND:
+            print_send(false, strcmp(context->name_buffer, auth) == 0, context->client_name, context->client_name, context->client_name);
+            break;
+        case CREATE_GROUP:
+            print_create_group(false,  strcmp(context->name_buffer, auth) == 0, context->client_name, *context->input_name);
+        case WHO:
+            break;
+        case EXIT:
+            break;
+        default:
+            break;
+    }
 
     return EXIT_SUCCESS;
 }
@@ -237,21 +244,17 @@ int main(int argc, char** argv)
 //            terminateServer();
             return FAIL_CODE;
         }
-//        std::cout << "In Select Client" << std::endl;
+
         if (FD_ISSET(STDIN_FILENO, &readfds))
         {
             verify_input(&context, STDIN_FILENO, server);
 
 //            auth_func(server);
-
             // todo: Check if message is valid and if not print ERROR -----
-
-            // todo: receive feedback from server if the sending succeeded and output SUCCESS / ERROR
         }
         //will check this client if it’s in readfds, if so- receive msg from server :
         if (FD_ISSET(server, &readfds))
         {
-//            std::cout << "in else" << std::endl;
             bzero(context.msg_buffer, WA_MAX_MESSAGE);
             read(server, context.msg_buffer, WA_MAX_MESSAGE);
             // todo Check if message is valid -----
