@@ -21,8 +21,6 @@ char * command_fail = const_cast<char *>("command_fail");
 
 // ======================================================================= //
 
-
-
 struct Client{
     std::string name;
     int client_socket;
