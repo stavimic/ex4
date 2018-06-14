@@ -16,9 +16,11 @@
 #define FAIL_CODE (-1)
 #define PORT_INDEX 1
 #define NUM_OF_ARGS 2
-char * auth = const_cast<char *>("auth_success");
-char * command_fail = const_cast<char *>("command_fail");
-char * duplicate = const_cast<char *>("dup");
+char * auth = const_cast<char *>("$auth_success");
+char * command_fail = const_cast<char *>("$command_fail");
+char * duplicate = const_cast<char *>("$dup");
+char * shut_down_command = const_cast<char *>("$exit");
+
 
 // ======================================================================= //
 
@@ -119,6 +121,19 @@ Client* get_client_by_name(serverContext* context, std::string& name)
         }
     }
     return nullptr;
+}
+
+void free_resources(serverContext* context)
+{
+    delete context-> msg_buffer;
+    delete context-> name_buffer;
+    context-> server_groups->clear();
+    context-> server_members->clear();
+    delete context-> name;
+    delete context-> msg;
+    delete context-> recipients;
+    delete context->server_groups;
+    delete context->server_groups;
 }
 
 int connectNewClient(serverContext* context, int fd)
@@ -272,6 +287,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
         }
         flag = true;
     }
+    // Add the new group to the server's vector of groups:
     Group* new_group = new Group();
     *new_group = {*(context->name), group_members};
     (context->server_groups)->push_back(new_group);
@@ -296,7 +312,6 @@ int handleClientRequest(serverContext* context, int fd)
             *(context->msg),
             *(context->recipients)
     );
-
 
     Client* sender = get_client_by_fd(context, fd);
     switch(context->commandT)
@@ -324,6 +339,23 @@ int handleClientRequest(serverContext* context, int fd)
             Group* curGroup = getGroupByName(context, *(context->name));
             if(curGroup != nullptr)
             {
+                // Make sure the sender is part of the group:
+                bool message_is_legal = false;
+                for(Client* current_client: *(curGroup->members))
+                {
+                    if (current_client->name == sender->name) // the sending is legal
+                    {
+                        message_is_legal = true;
+                        break;
+                    }
+                }
+                if(!message_is_legal)
+                {
+                    std::string trimmed_msg = trim_message(*(context->msg));
+                    print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
+                    write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+                    return FAIL_CODE;
+                }
                 for(auto member: *(curGroup->members))
                 {
                     if(member->name != sender->name)
@@ -416,6 +448,37 @@ int handleClientRequest(serverContext* context, int fd)
 }
 
 
+int serverStdInput(serverContext* context)
+{
+    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    if(read_data(STDIN_FILENO, context->msg_buffer, WA_MAX_MESSAGE) == FAIL_CODE)  // Get command from STDIN
+    {
+        system_call_error("read");
+        exit(1);
+    }
+    if(strcmp(context->msg_buffer, "EXIT"))
+    {
+        print_invalid_input();
+        return FAIL_CODE;
+    }
+    // Now tell all the clients to terminate:
+    for(Client* client : *context->server_members)
+    {
+        if(write(client->client_socket, shut_down_command, WA_MAX_NAME) == FAIL_CODE)
+        {
+            system_call_error("write");
+            exit(1);
+        }
+
+    }
+    free_resources(context);
+    print_exit();
+    exit(EXIT_SUCCESS);
+}
+
+
+
+
 int select_flow(int connection_socket)
 {
     serverContext context;
@@ -454,7 +517,7 @@ int select_flow(int connection_socket)
 
         if (FD_ISSET(STDIN_FILENO, &readfds))  // Message from stdin
         {
-//            serverStdInput();
+            serverStdInput(&context);
         }
 
         if (FD_ISSET(connection_socket, &readfds))  // Connection from new client

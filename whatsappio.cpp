@@ -202,7 +202,7 @@ void parse_command(const std::string& command, command_type& commandT,
     {
         commandT = WHO;
     }
-    else if(!strcmp(s, "exit"))
+    else if((!strcmp(s, "exit")) | (!strcmp(s, "exit\n")))
     {
         commandT = EXIT;
     }
