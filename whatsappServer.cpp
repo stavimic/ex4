@@ -123,7 +123,6 @@ int establish(unsigned short portnum)
 
 int connectNewClient(serverContext* context, int fd)
 {
-
     bzero(context->name_buffer, WA_MAX_NAME);
     read_data(fd, context->name_buffer, WA_MAX_NAME);
     // check for duplicate
@@ -194,7 +193,7 @@ Group* getGroupByName(serverContext* context, std::string& name)
 }
 
 
-void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
+int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
 
 //    bzero(context->msg_buffer, WA_MAX_MESSAGE);
@@ -203,11 +202,13 @@ void send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
     Client* dest = get_client_by_fd(context, fd); // todo check if nullptr
 
     std::string final_msg = origin_client->name + ": " + msg;
-    send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0);
-
-    // todo inform client that send succeeded
-
-    print_send(true, true, origin_client->name, dest->name, msg);
+    if(send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0) == WA_MAX_MESSAGE) // Success
+    {
+        print_send(true, true, origin_client->name, dest->name, msg);
+        return EXIT_SUCCESS;
+    }
+    print_send(true, false, origin_client->name, dest->name, msg);
+    return EXIT_FAILURE;
 }
 
 
@@ -266,6 +267,26 @@ int handel_group_creation(serverContext* context, int origin_fd)
     return EXIT_SUCCESS;
 }
 
+
+/**
+ * Remove "/n" from message
+ * @param message
+ * @return
+ */
+std::string trim_message(std::string&  message)
+{
+    std::string trimmed = std::string(message);
+    long len = trimmed.length();
+    std::string sub = trimmed.substr(len - 1);
+
+    if( (len >= 1) & (sub == "\n"))
+    {
+        trimmed = trimmed.substr(0, len - 1);
+    }
+    return trimmed;
+}
+
+
 /**
  * Handle the request being currently sent from an existing client
  * @param context server context
@@ -298,7 +319,12 @@ int handleClientRequest(serverContext* context, int fd)
             int dest_fd = getFdByName(context, *(context->name));
             if(dest_fd != FAIL_CODE)  // The message is for a single client
             {
-                send_msg(context, dest_fd, *(context->msg), fd);
+                if(send_msg(context, dest_fd, *(context->msg), fd) == FAIL_CODE)
+                {
+                    write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+                    return FAIL_CODE;
+                }
+                write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
                 return EXIT_SUCCESS;
             }
 
@@ -316,13 +342,14 @@ int handleClientRequest(serverContext* context, int fd)
                 }
                 print_send(true, true, sender->name, *(context->name), *(context->msg)); // message success
                 write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
-                return EXIT_SUCCESS; // todo inform client that message succeeded
+                return EXIT_SUCCESS;
             }
             else
             {
-                print_send(true, false, sender->name, *(context->name), *(context->msg)); // message FAIL
+                std::string trimmed_msg = trim_message(*(context->msg));
+                print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
                 write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
-                return FAIL_CODE; // todo inform client that message FAILED
+                return FAIL_CODE;
             }
 
         }
