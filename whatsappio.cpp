@@ -1,5 +1,4 @@
 #include "whatsappio.h"
-#include <cstdio>
 #include <iostream>
 
 void print_exit() {
@@ -8,6 +7,10 @@ void print_exit() {
 
 void print_connection() {
     printf("Connected Successfully.\n");
+}
+
+void print_connection_server(const std::string& client) {
+    printf("%s connected.\n", client.c_str());
 }
 
 void print_dup_connection() {
@@ -34,14 +37,14 @@ void print_client_usage() {
  * client: Client name
  * group: Group name
 */
-void print_create_group(bool server, bool success, 
+void print_create_group(bool server, bool success,
                         const std::string& client, const std::string& group) {
     if(server) {
         if(success) {
-            printf("%s: Group \"%s\" was created successfully.\n", 
+            printf("%s: Group \"%s\" was created successfully.\n",
                    client.c_str(), group.c_str());
         } else {
-            printf("%s: ERROR: failed to create group \"%s\"\n", 
+            printf("%s: ERROR: failed to create group \"%s\"\n",
                    client.c_str(), group.c_str());
         }
     }
@@ -63,14 +66,14 @@ void print_create_group(bool server, bool success,
  * name: Name of the client/group destination of the message
  * message: The message
 */
-void print_send(bool server, bool success, const std::string& client, 
+void print_send(bool server, bool success, const std::string& client,
                 const std::string& name, const std::string& message) {
     if(server) {
         if(success) {
-            printf("%s: \"%s\" was sent successfully to %s.\n", 
+            printf("%s: \"%s\" was sent successfully to %s.\n",
                    client.c_str(), message.c_str(), name.c_str());
         } else {
-            printf("%s: ERROR: failed to send \"%s\" to %s.\n", 
+            printf("%s: ERROR: failed to send \"%s\" to %s.\n",
                    client.c_str(), message.c_str(), name.c_str());
         }
     }
@@ -95,12 +98,15 @@ void print_who_client(bool success, const std::vector<std::string>& clients) {
     if(success)
     {
         bool first = true;
-        for (const std::string& client: clients) {
+        for (const std::string& client: clients)
+        {
             printf("%s%s", first ? "" : ",", client.c_str());
             first = false;
         }
         printf("\n");
-    } else {
+    }
+    else
+    {
         printf("ERROR: failed to receive list of connected clients.\n");
     }
 }
@@ -117,11 +123,13 @@ void print_exit(bool server, const std::string& client)
     }
 }
 
-void print_invalid_input() {
+void print_invalid_input()
+{
     printf("ERROR: Invalid input.\n");
 }
 
-void print_error(const std::string& function_name, int error_number) {
+void print_error(const std::string& function_name, int error_number)
+{
     printf("ERROR: %s %d.\n", function_name.c_str(), error_number);
 }
 

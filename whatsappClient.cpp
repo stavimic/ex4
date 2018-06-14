@@ -139,9 +139,9 @@ int verify_create_group(clientContext* context)
 
 }
 
-int verify_who(clientContext* context){}
+int verify_who(clientContext* context){return 0;}
 
-int verify_exit(clientContext* context){}
+int verify_exit(clientContext* context){return 0;}
 
 int verify_input(clientContext* context, int fd, int dest){
     bzero(context->msg_buffer, WA_MAX_MESSAGE);
@@ -189,6 +189,11 @@ int verify_input(clientContext* context, int fd, int dest){
                 break;
         }
     }
+
+
+
+
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -199,7 +204,7 @@ int main(int argc, char** argv)
     int port_num = atoi(argv[3]);
 
     clientContext context;
-    command_type T;
+    command_type T = INVALID;
     std::string* name = new std::string;
     std::string* message = new std::string;
     std::vector<std::string>* recipients = new std::vector<std::string>;

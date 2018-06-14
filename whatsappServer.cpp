@@ -11,14 +11,16 @@
 #include <iostream>
 
 // =======================  Macros & Globals  ============================= //
+
 #define MAX_QUEUD 10
 #define FAIL_CODE (-1)
-
-
-// ======================================================================= //
+#define PORT_INDEX 1
 
 char * auth = const_cast<char *>("auth_success");
 char * command_fail = const_cast<char *>("command_fail");
+
+// ======================================================================= //
+
 
 
 struct Client{
@@ -130,7 +132,8 @@ int connectNewClient(serverContext* context, int fd)
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
 
-    std::cout<< name << " connected." << std::endl;
+//    std::cout<< name << " connected." << std::endl;
+    print_connection_server(name);
     write(fd, auth, WA_MAX_NAME);
     return EXIT_SUCCESS;
 
@@ -227,7 +230,7 @@ int does_name_exist(serverContext* context, std::string& name)
 int handel_group_creation(serverContext* context, int origin_fd)
 {
     // Make sure the given name doesn't already exist:
-    if (does_name_exist(context,  *(context->name)))
+    if (does_name_exist(context, *(context->name)))
     {
         return FAIL_CODE;
     }
@@ -263,68 +266,147 @@ int handel_group_creation(serverContext* context, int origin_fd)
     return EXIT_SUCCESS;
 }
 
-
+/**
+ * Handle the request being currently sent from an existing client
+ * @param context server context
+ * @param fd client fd
+ * @return EXIT_SUCCESS or EXIT_FAILURE
+ */
 int handleClientRequest(serverContext* context, int fd)
 {
     bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);
-    parse_command(context->msg_buffer, context->commandT,
-                  *(context->name), *(context->msg), *(context->recipients));
+    read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);  // Get command
+    parse_command(
+            context->msg_buffer,
+            context->commandT,
+            *(context->name),
+            *(context->msg),
+            *(context->recipients)
+    );
 
-    if((context->commandT) == INVALID){
-        // update client
-    }
 
     Client* sender = get_client_by_fd(context, fd);
-    if(context->commandT == SEND)
+    switch(context->commandT)
     {
-        int dest_fd = getFdByName(context, *(context->name));
-        if(dest_fd != FAIL_CODE)
-        {
-            send_msg(context, dest_fd, *(context->msg), fd);
-            return EXIT_SUCCESS;
-        }
+        case INVALID:
+            // todo update the client
+            std::cout<<"invalid commend"<<std::endl;
+            return EXIT_FAILURE;
 
-        // Check if this is a group message, and the group exists:
-        Group* curGroup = getGroupByName(context, *(context->name));
-        if(curGroup != nullptr)
+        case SEND:
         {
-            for(auto member: *(curGroup->members))
+            int dest_fd = getFdByName(context, *(context->name));
+            if(dest_fd != FAIL_CODE)  // The message is for a single client
             {
-                if(member->name != sender->name)
-                {
-                    std::string final_msg = sender->name + ": " + *(context->msg);
-                    send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
-                }
+                send_msg(context, dest_fd, *(context->msg), fd);
+                return EXIT_SUCCESS;
             }
-            print_send(true, true, sender->name, *(context->name), *(context->msg)); // message success
-            write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
-            return EXIT_SUCCESS; // todo inform client that message succeeded
-        }
-        else
-        {
-            print_send(true, false, sender->name, *(context->name), *(context->msg)); // message FAIL
-            write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
-            return FAIL_CODE; // todo inform client that message FAILED
+
+            // Check if this is a group message, and if the group exists:
+            Group* curGroup = getGroupByName(context, *(context->name));
+            if(curGroup != nullptr)
+            {
+                for(auto member: *(curGroup->members))
+                {
+                    if(member->name != sender->name)
+                    {
+                        std::string final_msg = sender->name + ": " + *(context->msg);
+                        send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+                    }
+                }
+                print_send(true, true, sender->name, *(context->name), *(context->msg)); // message success
+                write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
+                return EXIT_SUCCESS; // todo inform client that message succeeded
+            }
+            else
+            {
+                print_send(true, false, sender->name, *(context->name), *(context->msg)); // message FAIL
+                write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+                return FAIL_CODE; // todo inform client that message FAILED
+            }
+
         }
 
-
-    }
-
-    else if (context->commandT == CREATE_GROUP)
-    {
-        if(handel_group_creation(context, fd) == FAIL_CODE)
+        case CREATE_GROUP:
         {
-            write(fd, command_fail, WA_MAX_NAME);  // inform client that group failed
-            print_create_group(true, false, sender->name,  *(context->name)); // Print fail message
+            if(handel_group_creation(context, fd) == FAIL_CODE)
+            {
+                write(fd, command_fail, WA_MAX_NAME);  // inform client that group failed
+                print_create_group(true, false, sender->name,  *(context->name)); // Print fail message
+            }
+            else
+            {
+                write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
+                print_create_group(true, true, sender->name,  *(context->name)); // Print success message
+            }
         }
-        else
+
+        case WHO:
         {
-            write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
-            print_create_group(true, true, sender->name,  *(context->name)); // Print success message
+
         }
+            break;
+
+        case EXIT:
+        {
+
+        }
+            break;
+
+
     }
     return EXIT_SUCCESS;
+
+
+
+//    if(context->commandT == SEND)
+//    {
+//        int dest_fd = getFdByName(context, *(context->name));
+//        if(dest_fd != FAIL_CODE)
+//        {
+//            send_msg(context, dest_fd, *(context->msg), fd);
+//            return EXIT_SUCCESS;
+//        }
+//
+//        // Check if this is a group message, and the group exists:
+//        Group* curGroup = getGroupByName(context, *(context->name));
+//        if(curGroup != nullptr)
+//        {
+//            for(auto member: *(curGroup->members))
+//            {
+//                if(member->name != sender->name)
+//                {
+//                    std::string final_msg = sender->name + ": " + *(context->msg);
+//                    send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+//                }
+//            }
+//            print_send(true, true, sender->name, *(context->name), *(context->msg)); // message success
+//            write(fd, auth, WA_MAX_NAME);  // inform client that sending succeeded
+//            return EXIT_SUCCESS; // todo inform client that message succeeded
+//        }
+//        else
+//        {
+//            print_send(true, false, sender->name, *(context->name), *(context->msg)); // message FAIL
+//            write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
+//            return FAIL_CODE; // todo inform client that message FAILED
+//        }
+//
+//
+//    }
+//
+//    if (context->commandT == CREATE_GROUP)
+//    {
+//        if(handel_group_creation(context, fd) == FAIL_CODE)
+//        {
+//            write(fd, command_fail, WA_MAX_NAME);  // inform client that group failed
+//            print_create_group(true, false, sender->name,  *(context->name)); // Print fail message
+//        }
+//        else
+//        {
+//            write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
+//            print_create_group(true, true, sender->name,  *(context->name)); // Print success message
+//        }
+//    }
 }
 
 
@@ -336,7 +418,9 @@ int select_flow(int connection_socket)
     std::string* message = new std::string;
     std::vector<std::string>* recipients = new std::vector<std::string>;
 
-    context = {
+    // Create the context for the current server:
+    context =
+    {
         new char[WA_MAX_NAME],
         new char[WA_MAX_MESSAGE],
         new std::vector<Client*>(),
@@ -347,6 +431,7 @@ int select_flow(int connection_socket)
         recipients
     };
 
+    // Initialize FD set
     fd_set clientsfds;
     fd_set readfds;
     FD_ZERO(&clientsfds);
@@ -356,41 +441,31 @@ int select_flow(int connection_socket)
     while (true)
     {
         readfds = clientsfds;
-
-//        std::cout << "before select" << std::endl;
-
         if (select(MAX_QUEUD + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
 //            terminateServer();
             return FAIL_CODE;
         }
 
-//        std::cout << "after select" << std::endl;
-
-
-        if (FD_ISSET(STDIN_FILENO, &readfds))
+        if (FD_ISSET(STDIN_FILENO, &readfds))  // Message from stdin
         {
 //            serverStdInput();
         }
 
-        if (FD_ISSET(connection_socket, &readfds)) {
-            //will also add the client to the clientsfds
-
+        if (FD_ISSET(connection_socket, &readfds))  // Connection from new client
+        {
             if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
 
                 std::cout << "accept_fail" << std::endl;
                 return EXIT_FAILURE;
             }
-            FD_SET(file_descriptor, &clientsfds);
+            FD_SET(file_descriptor, &clientsfds); // add the client to the clientsfds
             connectNewClient(&context, file_descriptor);
         }
-
-        else
+        else  // Connection from existing client
         {
-//            std::cout << "in else" << std::endl;
-            //will check each client if it’s in readfds
-            //and then receive a message from him
+            //will check each client if it’s in readfds and then receive a message from him
             for(const auto client: *(context.server_members)){
                 if(FD_ISSET((*client).client_socket, &readfds)){
                     handleClientRequest(&context, client->client_socket);
@@ -404,14 +479,16 @@ int select_flow(int connection_socket)
 
 int main(int argc, char** argv)
 {
-    while (true)
-    {
-        short port_number = atoi(argv[1]);
+//    while (true)
+//    {
+        unsigned short port_number = atoi(argv[PORT_INDEX]);
         std::cout << port_number << std::endl ;
         int fd = establish(port_number);
         select_flow(fd);
-        break;
-    }
+//        break;
+//    }
+
+    //todo return Exit Success / Failure ----------------
 }
 
 
