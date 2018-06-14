@@ -193,7 +193,8 @@ std::string trim_message(std::string&  message)
     return trimmed;
 }
 
-int getFdByName(serverContext* context, std::string& name){
+int getFdByName(serverContext* context, std::string& name)
+{
     for(auto &client: *(context->server_members)){
         if(client->name == name)
         {
@@ -219,15 +220,12 @@ Group* getGroupByName(serverContext* context, std::string& name)
 
 int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
-
-//    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-//    context->msg_buffer = const_cast<char *>(msg.c_str());
-    Client* origin_client = get_client_by_fd(context, origin_fd); // todo check if nullptr
-    Client* dest = get_client_by_fd(context, fd); // todo check if nullptr
+    Client* origin_client = get_client_by_fd(context, origin_fd);
+    Client* dest = get_client_by_fd(context, fd);
 
     std::string final_msg = origin_client->name + ": " + msg;
 
-    if(send(fd, final_msg.c_str(), WA_MAX_MESSAGE, 0) == FAIL_CODE)
+    if(send(fd, final_msg.c_str(), WA_MAX_INPUT, 0) == FAIL_CODE)
     {
         system_call_error("send");
         return FAIL_CODE;
@@ -308,8 +306,8 @@ int handel_group_creation(serverContext* context, int origin_fd)
  */
 int handleClientRequest(serverContext* context, int fd)
 {
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
-    read_data(fd, context->msg_buffer, WA_MAX_MESSAGE);  // Get command
+    bzero(context->msg_buffer, WA_MAX_INPUT);
+    read_data(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -367,7 +365,7 @@ int handleClientRequest(serverContext* context, int fd)
                     if(member->name != sender->name)
                     {
                         std::string final_msg = sender->name + ": " + *(context->msg);
-                        send(member->client_socket, final_msg.c_str(), WA_MAX_MESSAGE, 0);
+                        send(member->client_socket, final_msg.c_str(), WA_MAX_INPUT, 0);
                     }
                 }
                 print_send(true, true, sender->name, *(context->name), trim_message(*(context->msg))); // message success
@@ -409,7 +407,7 @@ int handleClientRequest(serverContext* context, int fd)
             }
             total = total.substr(0, total.length() - 1);
             write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
-            write(fd, total.c_str(), WA_MAX_MESSAGE);  // send the list of clients
+            write(fd, total.c_str(), WA_MAX_INPUT);  // send the list of clients
             print_who_server(sender->name);
             break;
         }
@@ -456,7 +454,7 @@ int handleClientRequest(serverContext* context, int fd)
 
 int serverStdInput(serverContext* context)
 {
-    bzero(context->msg_buffer, WA_MAX_MESSAGE);
+    bzero(context->msg_buffer, WA_MAX_INPUT);
     if(read_data(STDIN_FILENO, context->name_buffer, 5) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
@@ -495,7 +493,7 @@ int select_flow(int connection_socket)
     context =
     {
         new char[WA_MAX_NAME],
-        new char[WA_MAX_MESSAGE],
+        new char[WA_MAX_INPUT],
         new std::vector<Client*>(),
         new std::vector<Group*>(),
         INVALID,
