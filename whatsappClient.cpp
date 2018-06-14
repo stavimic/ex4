@@ -74,19 +74,6 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     return server_socket;
 }
 
-//int auth_func(int server)
-//{
-//    read(server, name_buffer, WA_MAX_NAME);
-//    std::cout << name_buffer << std::endl;
-//    if (strcmp(name_buffer, auth) == 0){
-//        print_connection();
-//    }
-//    else{
-//        //print duplicate name
-//        print_fail_connection();
-//    }
-//
-//}
 
 int verify_send(clientContext* context)
 {
@@ -111,11 +98,7 @@ int verify_send(clientContext* context)
 int verify_create_group(clientContext* context)
 {
     int i = 0;
-//    if(context->recipients->size() < 1)
-//    {
-//        print_create_group(false, false, "",*(context->input_name));
-//        return FAIL_CODE;
-//    }
+
     while((*(context->input_name))[i])
     {
         if (! std::isalnum((*(context->input_name))[i]))
@@ -125,13 +108,10 @@ int verify_create_group(clientContext* context)
         }
         i++;
     }
-
     (context->recipients)->push_back(std::string(context->client_name));
     std::sort(context->recipients->begin(), context->recipients->end());
     auto uniqCnt = std::unique(context->recipients->begin(), context->recipients->end()) - context->recipients->begin();
-//    for(auto elem: *context->recipients){
-//        std::cout << elem << std::endl;
-//    }
+
     if(uniqCnt < 2)
     {
         print_create_group(false, false, "",*(context->input_name));
@@ -164,7 +144,8 @@ int verify_input(clientContext* context, int fd, int dest){
             }
             break;
         case CREATE_GROUP:
-            if(verify_create_group(context) == FAIL_CODE){
+            if(verify_create_group(context) == FAIL_CODE)
+            {
                 return FAIL_CODE;
             }
             break;
@@ -192,12 +173,20 @@ int verify_input(clientContext* context, int fd, int dest){
     }
 
     switch (context->commandT) {
-        case SEND:{
-            print_send(false, strcmp(context->name_buffer, auth) == 0, context->client_name, context->client_name, context->client_name);
-            break;}
+        case SEND:
+        {
+            print_send(false, strcmp(context->name_buffer, auth) == 0, context->client_name,
+                       context->client_name, context->client_name);
+            break;
+        }
         case CREATE_GROUP:
-            print_create_group(false,  strcmp(context->name_buffer, auth) == 0, context->client_name, *context->input_name);
-        case WHO: {
+        {
+            print_create_group(false,  strcmp(context->name_buffer, auth) == 0, context->client_name,
+                               *context->input_name);
+            break;
+        }
+        case WHO:
+        {
             recv(dest, context->msg_buffer, WA_MAX_MESSAGE, 0);
             std::string s = "create_group GGG " + std::string(context->msg_buffer);
             parse_command(s, context->commandT,

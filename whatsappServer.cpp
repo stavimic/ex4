@@ -120,7 +120,6 @@ int establish(unsigned short portnum)
     return s;
 }
 
-
 Client* get_client_by_name(serverContext* context, std::string& name)
 {
     for(auto client: *((*context).server_members))
@@ -192,7 +191,6 @@ std::string trim_message(std::string&  message)
     }
     return trimmed;
 }
-
 
 int getFdByName(serverContext* context, std::string& name){
     for(auto &client: *(context->server_members)){
@@ -295,7 +293,6 @@ int handel_group_creation(serverContext* context, int origin_fd)
 }
 
 
-
 /**
  * Handle the request being currently sent from an existing client
  * @param context server context
@@ -360,7 +357,6 @@ int handleClientRequest(serverContext* context, int fd)
                 write(fd, command_fail, WA_MAX_NAME);  // inform client that sending failed
                 return FAIL_CODE;
             }
-
         }
 
         case CREATE_GROUP:
@@ -375,6 +371,7 @@ int handleClientRequest(serverContext* context, int fd)
                 write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
                 print_create_group(true, true, sender->name,  *(context->name)); // Print success message
             }
+            break;
         }
 
         case WHO:
@@ -389,11 +386,43 @@ int handleClientRequest(serverContext* context, int fd)
             total = total.substr(0, total.length() - 1);
             write(fd, auth, WA_MAX_NAME);  // inform client that group succeeded
             write(fd, total.c_str(), WA_MAX_MESSAGE);  // send the list of clients
+            print_who_server(sender->name);
             break;
         }
 
         case EXIT:
         {
+            std::string name_to_delete = sender->name;
+            // Un-register the client from the server:
+            auto iter = std::begin(*context->server_members);
+            while (iter != std::end(*context->server_members))
+            {
+                if ((*iter)->name == name_to_delete)
+                {
+                    iter = (*context->server_members).erase(iter);
+                    break;
+                }
+                ++iter;
+            }
+
+            // Un-register the client from all groups:
+            for(Group* group : *context->server_groups)
+            {
+                auto iter = std::begin(group->members);
+                while (iter != std::end(group->members))
+                {
+                    if ((*iter)->name == name_to_delete)
+                    {
+                        iter = group->members->erase(iter);
+                        break;
+                    }
+                    ++iter;
+                }
+            }
+            write(fd, auth, WA_MAX_NAME);  // inform client that un-registering succeeded
+            print_exit(true, name_to_delete);
+
+
 
         }
             break;
@@ -401,7 +430,6 @@ int handleClientRequest(serverContext* context, int fd)
 
     }
     return EXIT_SUCCESS;
-
 }
 
 
@@ -478,6 +506,7 @@ int main(int argc, char** argv)
     if(argc != NUM_OF_ARGS)
     {
         print_server_usage();
+        exit(0);
     }
     unsigned short port_number = atoi(argv[PORT_INDEX]);
     std::cout << port_number << std::endl ;
