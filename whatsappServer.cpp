@@ -272,6 +272,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
         }
         flag = true;
     }
+    // Add the new group to the server's vector of groups:
     Group* new_group = new Group();
     *new_group = {*(context->name), group_members};
     (context->server_groups)->push_back(new_group);
@@ -296,7 +297,6 @@ int handleClientRequest(serverContext* context, int fd)
             *(context->msg),
             *(context->recipients)
     );
-
 
     Client* sender = get_client_by_fd(context, fd);
     switch(context->commandT)
