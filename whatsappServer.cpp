@@ -148,13 +148,28 @@ Client* get_client_by_name(serverContext* context, std::string& name)
 }
 
 
+Group* getGroupByName(serverContext* context, std::string& name)
+{
+    for(auto &group: *(context->server_groups))
+    {
+        if(group->group_name == name)
+        {
+            return group;
+        }
+    }
+    return nullptr;
+
+}
+
+
+
 int connectNewClient(serverContext* context, int fd)
 {
     bzero(context->name_buffer, WA_MAX_NAME);
     recv(fd, context->name_buffer, WA_MAX_NAME, 0);
     // check for duplicate
     std::string name = std::string(context->name_buffer);
-    if(get_client_by_name(context, name) != nullptr)
+    if(get_client_by_name(context, name) != nullptr)  // name already exists
     {
         // Client name already exists, inform the client that the creation failed
         if(send(fd, duplicate, WA_MAX_NAME, 0) < 0 )
@@ -163,6 +178,18 @@ int connectNewClient(serverContext* context, int fd)
             exit(EXIT_FAILURE);
         }
         return FAIL_CODE;
+    }
+
+    if (getGroupByName(context, name) != nullptr) // name already exists
+    {
+        // Group name already exists, inform the client that the creation failed
+        if(send(fd, duplicate, WA_MAX_NAME, 0) < 0 )
+        {
+            system_call_error("send");
+            exit(EXIT_FAILURE);
+        }
+        return FAIL_CODE;
+
     }
     Client* new_client = new Client();
     *new_client = {name, fd};
@@ -217,19 +244,6 @@ int getFdByName(serverContext* context, std::string& name)
         }
     }
     return FAIL_CODE;
-}
-
-
-Group* getGroupByName(serverContext* context, std::string& name)
-{
-    for(auto &group: *(context->server_groups)){
-        if(group->group_name == name)
-        {
-            return group;
-        }
-    }
-    return nullptr;
-
 }
 
 
@@ -510,7 +524,7 @@ int handleClientRequest(serverContext* context, int fd)
 int serverStdInput(serverContext* context)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
-    if(read(STDIN_FILENO, context->name_buffer, EXIT_SIZE) == FAIL_CODE)  // Get command from STDIN
+    if(read(STDIN_FILENO, context->name_buffer, WA_MAX_NAME) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
         exit(1);
@@ -519,6 +533,7 @@ int serverStdInput(serverContext* context)
     if(strcmp(trim_message(msg).c_str(), "EXIT"))
     {
         print_invalid_input();
+        bzero(context->name_buffer, WA_MAX_NAME);
         return FAIL_CODE;
     }
     // Now tell all the clients to terminate:
