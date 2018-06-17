@@ -448,6 +448,7 @@ int handleClientRequest(serverContext* context, int fd)
                     system_call_error("send");
                     exit(EXIT_FAILURE);
                 }
+
                 print_create_group(true, true, sender->name,  *(context->name)); // Print success message
             }
             break;
