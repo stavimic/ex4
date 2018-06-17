@@ -12,11 +12,10 @@
 #include <algorithm>
 
 // =======================  Macros & Globals  ============================= //
-#define MAX_QUEUED 10
+#define MAX_QUEUED 10 // max number of QUEUED clients
 #define FAIL_CODE (-1)
-#define NUM_OF_ARGS 4
+#define NUM_OF_ARGS 4  // required num of args
 char * auth = const_cast<char *>("$auth_success");
-char * command_fail = const_cast<char *>("$command_fail");
 char * duplicate = const_cast<char *>("$dup");
 char * shut_down_command = const_cast<char *>("$exit");
 struct clientContext
@@ -50,7 +49,11 @@ std::string trim_message(std::string&  message)
     }
     return trimmed;
 }
-
+/**
+ * This function release all the memory allocated by the client
+ * @param context
+ * @return
+ */
 int free_resources(clientContext* context)
 {
     context->recipients->clear();
@@ -62,6 +65,13 @@ int free_resources(clientContext* context)
     return EXIT_SUCCESS;
 }
 
+/**
+ * This function connect the client to the server
+ * @param context
+ * @param hostname server host
+ * @param portnum port to connect
+ * @return
+ */
 int call_socket(clientContext* context, const char *hostname,  int portnum)
 {
     struct sockaddr_in sa;
@@ -93,18 +103,24 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
 
     }
 
+    /// send the name of the client in oreder to register in server
     send(server_socket, context->name_buffer, WA_MAX_NAME, 0);
     bzero(context->name_buffer, WA_MAX_NAME);
+
+    /// receive authentication message
     recv(server_socket, context->name_buffer, WA_MAX_NAME, 0);
 
+    ///case success
     if (strcmp(context->name_buffer, auth) == 0){
         print_connection();
     }
+        /// case duplicate connection
     else if(strcmp(context->name_buffer, duplicate) == 0)
     {
         print_dup_connection();
         exit(EXIT_FAILURE);
     }
+        ///case failed connection
     else
     {
         print_fail_connection();
@@ -113,9 +129,12 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     return server_socket;
 }
 
+/// Verify client isn't sending to himself
+/// \param context
+/// \return
 int verify_send(clientContext* context)
 {
-    if(strcmp(context->input_name->c_str(), context->client_name) == 0) // Verify client isn't sending to himself
+    if(strcmp(context->input_name->c_str(), context->client_name) == 0)
     {
         print_send(false, false, context->client_name, trim_message(*(context->input_name)), " ");
         return FAIL_CODE;
@@ -123,6 +142,11 @@ int verify_send(clientContext* context)
     return EXIT_SUCCESS;
 }
 
+/**
+ * verify group creation - name as alnum, and enough uniqe members
+ * @param context
+ * @return
+ */
 int verify_create_group(clientContext* context)
 {
     int i = 0;
@@ -149,10 +173,20 @@ int verify_create_group(clientContext* context)
 
 }
 
-int verify_input(clientContext* context, int fd, int dest){
+/**
+ * main function to handle input from user
+ * @param context
+ * @param fd origin fd
+ * @param dest  destination fd
+ * @return
+ */
+int verify_input(clientContext* context, int fd, int dest)
+{
     bzero(context->msg_buffer, WA_MAX_INPUT);
+    /// read input
     read(fd, context->msg_buffer, WA_MAX_INPUT);
 
+    /// parse command
     parse_command(context->msg_buffer, context->commandT,
                   *(context->input_name), *(context->msg), *(context->recipients));
 
@@ -188,7 +222,8 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
         }
     }
-//    std::cerr << context->msg_buffer << std::endl;
+
+    // send to server desired message
     ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
 
     if (ans == FAIL_CODE)
@@ -198,7 +233,7 @@ int verify_input(clientContext* context, int fd, int dest){
         exit(EXIT_FAILURE);
     }
 
-    bzero(context->name_buffer, WA_MAX_INPUT);
+    /// receive authentication message
     if(recv(dest, context->name_buffer, WA_MAX_NAME, 0) == FAIL_CODE)
     {
         system_call_error("recv");
@@ -207,6 +242,7 @@ int verify_input(clientContext* context, int fd, int dest){
 
     }
 
+    /// print messages to client
     switch (context->commandT)
     {
         case SEND:
@@ -223,7 +259,6 @@ int verify_input(clientContext* context, int fd, int dest){
         }
         case WHO:
         {
-//            bzero(context->msg_buffer, WA_MAX_INPUT);
             recv(dest, context->msg_buffer, WA_MAX_INPUT, 0);
             std::string s = "create_group GGG " + std::string(context->msg_buffer);
             parse_command(s, context->commandT,
@@ -244,7 +279,11 @@ int verify_input(clientContext* context, int fd, int dest){
     return EXIT_SUCCESS;
 }
 
-
+/**
+ * Check whether client name is legal or not
+ * @param name
+ * @return
+ */
 bool is_client_name_legal(char* name)
 {
     int i = 0;
@@ -261,6 +300,12 @@ bool is_client_name_legal(char* name)
     return true;
 }
 
+/**
+ * main function to run process
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char** argv)
 {
     if (argc != NUM_OF_ARGS)
@@ -286,6 +331,7 @@ int main(int argc, char** argv)
     std::string* message = new std::string;
     std::vector<std::string>* recipients = new std::vector<std::string>;
 
+    // define context
     context = 
     {
             new char[WA_MAX_NAME],
@@ -297,6 +343,7 @@ int main(int argc, char** argv)
             client_name
     };
 
+    // copy client name to buffer
     strcpy(context.name_buffer, client_name);
     server = call_socket(&context, host_name, port_num);
     bzero(context.name_buffer, WA_MAX_NAME);
