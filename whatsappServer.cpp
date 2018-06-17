@@ -559,6 +559,8 @@ int select_flow(int connection_socket)
             system_call_error("select");
             exit(EXIT_FAILURE);
         }
+        std::cerr<<"out of select\n";
+
 
         if (FD_ISSET(STDIN_FILENO, &readfds))  // Message from stdin
         {
@@ -578,11 +580,24 @@ int select_flow(int connection_socket)
         else  // Connection from existing client
         {
             //will check each client if it’s in readfds and then receive a message from him
-            for(const auto client: *(context.server_members)){
-                if(FD_ISSET((*client).client_socket, &readfds)){
+            for(const auto client: *(context.server_members))
+            {
+                if(client == nullptr)
+                {
+                    std::cerr<<"client == nullptr\n";
+                }
+
+                if(FD_ISSET((*client).client_socket, &readfds))
+                {
                     handleClientRequest(&context, client->client_socket);
                 }
             }
+        }
+
+        std::cerr<<"end of loop\n";
+        if(context.name_buffer == nullptr)
+        {
+            std::cerr<<"name_buffer == nullptr\n";
         }
         bzero(context.name_buffer, WA_MAX_NAME);
     }
