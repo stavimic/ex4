@@ -337,6 +337,12 @@ int handleClientRequest(serverContext* context, int fd)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
     read_data(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
+    if(context-> msg_buffer == nullptr)
+    {
+        std::cerr<< "null" << std::endl;
+        return FAIL_CODE;
+    }
+    
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -387,8 +393,7 @@ int handleClientRequest(serverContext* context, int fd)
                 }
                 if(!message_is_legal)
                 {
-                    std::string trimmed_msg = trim_message(*(context->msg));
-                    print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
+                    print_send(true, false, sender->name, *(context->name), *(context->msg)); // message FAIL
                     if(send(fd, command_fail, WA_MAX_NAME, 0) < 0) // inform client that sending failed
                     {
                         system_call_error("send");
@@ -460,12 +465,12 @@ int handleClientRequest(serverContext* context, int fd)
                 total += ",";
             }
             total = total.substr(0, total.length() - 1);
-            if(send(fd, auth, WA_MAX_NAME, 0)<0)  // inform client that group succeeded
+            if(send(fd, auth, WA_MAX_NAME, 0) < 0)  // inform client that group succeeded
             {
                 system_call_error("send");
                 exit(EXIT_FAILURE);
             }
-            if(send(fd, total.c_str(), WA_MAX_INPUT, 0)<0)  // send the list of clients
+            if(send(fd, total.c_str(), WA_MAX_INPUT, 0) < 0)  // send the list of clients
             {
                 system_call_error("send");
                 exit(EXIT_FAILURE);
