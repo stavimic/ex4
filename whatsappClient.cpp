@@ -93,9 +93,9 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
 
     }
 
-    send(server_socket, context->name_buffer, WA_MAX_NAME, 0);
+    write(server_socket, context->name_buffer, WA_MAX_NAME);
     bzero(context->name_buffer, WA_MAX_NAME);
-    recv(server_socket, context->name_buffer, WA_MAX_NAME, 0);
+    read(server_socket, context->name_buffer, WA_MAX_NAME);
 
     if (strcmp(context->name_buffer, auth) == 0){
         print_connection();
@@ -188,7 +188,8 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
         }
     }
-    std::cerr << context->msg_buffer << std::endl;
+//    std::cerr << "sending to server" << std::endl;
+//    std::cerr << context->msg_buffer << std::endl;
     ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
 
     if (ans == FAIL_CODE)
@@ -331,5 +332,6 @@ int main(int argc, char** argv)
             bzero(context.msg_buffer, WA_MAX_INPUT);
         }
     }
+    
 
 }
