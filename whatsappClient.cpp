@@ -100,11 +100,13 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     if (strcmp(context->name_buffer, auth) == 0){
         print_connection();
     }
-    else if(strcmp(context->name_buffer, duplicate) == 0){
+    else if(strcmp(context->name_buffer, duplicate) == 0)
+    {
         print_dup_connection();
         exit(EXIT_FAILURE);
     }
-    else{
+    else
+    {
         print_fail_connection();
         exit(EXIT_FAILURE);
     }
