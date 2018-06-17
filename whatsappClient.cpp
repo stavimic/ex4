@@ -188,7 +188,7 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
         }
     }
-    std::cerr << context->msg_buffer << std::endl;
+//    std::cerr << context->msg_buffer << std::endl;
     ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
 
     if (ans == FAIL_CODE)
