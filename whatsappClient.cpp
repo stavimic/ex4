@@ -173,9 +173,11 @@ int verify_input(clientContext* context, int fd, int dest){
         print_invalid_input();
         return FAIL_CODE;
     }
-    switch (context->commandT){
+    switch (context->commandT)
+    {
         case SEND:
-            if(verify_send(context) == FAIL_CODE){
+            if(verify_send(context) == FAIL_CODE)
+            {
                 return FAIL_CODE;
             }
             break;

@@ -16,6 +16,7 @@
 #define FAIL_CODE (-1)
 #define PORT_INDEX 1
 #define NUM_OF_ARGS 2
+#define ERASE_USER_CODE 3
 char * auth = const_cast<char *>("$auth_success");
 char * command_fail = const_cast<char *>("$command_fail");
 char * duplicate = const_cast<char *>("$dup");
@@ -320,11 +321,6 @@ int handleClientRequest(serverContext* context, int fd)
     Client* sender = get_client_by_fd(context, fd);
     switch(context->commandT)
     {
-        case INVALID:
-            // todo update the client
-            std::cout<<"invalid command"<<std::endl;
-            return FAIL_CODE;
-
         case SEND:
         {
             int dest_fd = getFdByName(context, *(context->name));
@@ -484,9 +480,12 @@ int handleClientRequest(serverContext* context, int fd)
                 exit(EXIT_FAILURE);
             }
             print_exit(true, name_to_delete);
+            return ERASE_USER_CODE;
         }
+        default:
+        {
             break;
-
+        }
 
     }
     return EXIT_SUCCESS;
@@ -589,7 +588,12 @@ int select_flow(int connection_socket)
 
                 if(FD_ISSET((*client).client_socket, &readfds))
                 {
-                    handleClientRequest(&context, client->client_socket);
+                    std::cerr<<"entering client request- socket number" << (*client).client_socket << "\n";
+
+                    if(handleClientRequest(&context, client->client_socket) == ERASE_USER_CODE)
+                    {
+                        FD_CLR(client->client_socket, &clientsfds);
+                    }
                 }
             }
         }
