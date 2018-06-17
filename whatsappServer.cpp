@@ -12,18 +12,14 @@
 
 // =======================  Macros & Globals  ============================= //
 
-#define MAX_QUEUD 10
+#define MAX_QUEUED 10
 #define FAIL_CODE (-1)
 #define PORT_INDEX 1
 #define NUM_OF_ARGS 2
-#define EXIT_SIZE 5
 char * auth = const_cast<char *>("$auth_success");
 char * command_fail = const_cast<char *>("$command_fail");
 char * duplicate = const_cast<char *>("$dup");
 char * shut_down_command = const_cast<char *>("$exit");
-
-
-
 // ======================================================================= //
 
 struct Client
@@ -64,30 +60,6 @@ void free_resources(serverContext* context)
     delete context->server_members;
 }
 
-
-int read_data(int s, char *buf, int n)
-{
-    int bcount; /* counts bytes read */
-    int br; /* bytes read this pass */
-    bcount= 0; br= 0;
-    while (bcount < n)
-    {
-        /* loop until full buffer */
-        br = read(s, buf, n-bcount);
-        if ((br > 0))
-        {
-            bcount += br;
-            buf += br;
-        }
-        if (br < 0)
-        {
-            system_call_error("read");
-            exit(EXIT_FAILURE);
-        }
-    }
-    return bcount;
-}
-
 int establish(unsigned short portnum)
 {
     char myname[WA_MAX_NAME + 1];
@@ -124,7 +96,7 @@ int establish(unsigned short portnum)
         system_call_error("bind");
         exit(EXIT_FAILURE);
     }
-    listen(s, MAX_QUEUD); /* max # of queued connects */
+    listen(s, MAX_QUEUED); /* max # of queued connects */
     return s;
 }
 
@@ -257,7 +229,7 @@ int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
     if(send(fd, final_msg.c_str(), WA_MAX_INPUT, 0) == FAIL_CODE)
     {
         system_call_error("send");
-        return FAIL_CODE;
+        exit(EXIT_FAILURE);
     }
     // Success:
     print_send(true, true, origin_client->name, dest->name, trim_message(msg));
@@ -527,7 +499,7 @@ int serverStdInput(serverContext* context)
     if(read(STDIN_FILENO, context->name_buffer, WA_MAX_NAME) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     auto msg = std::string(context->name_buffer);
     if(strcmp(trim_message(msg).c_str(), "EXIT"))
@@ -542,7 +514,7 @@ int serverStdInput(serverContext* context)
         if(send(client->client_socket, shut_down_command, WA_MAX_NAME, 0) == FAIL_CODE)
         {
             system_call_error("send");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
     }
@@ -582,7 +554,7 @@ int select_flow(int connection_socket)
     while (true)
     {
         readfds = clientsfds;
-        if (select(MAX_QUEUD + 1, &readfds, nullptr, nullptr, nullptr) < 0)
+        if (select(MAX_QUEUED + 1, &readfds, nullptr, nullptr, nullptr) < 0)
         {
             system_call_error("select");
             exit(EXIT_FAILURE);
@@ -598,7 +570,7 @@ int select_flow(int connection_socket)
             if((file_descriptor = accept(connection_socket, nullptr, nullptr)) < 0)
             {
                 system_call_error("accept");
-                exit(FAIL_CODE);
+                exit(EXIT_FAILURE);
             }
             FD_SET(file_descriptor, &clientsfds); // add the client to the clientsfds
             connectNewClient(&context, file_descriptor);
