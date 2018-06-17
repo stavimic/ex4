@@ -188,6 +188,7 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
         }
     }
+//    std::cerr << context->msg_buffer << std::endl;
     ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
 
     if (ans == FAIL_CODE)
@@ -197,6 +198,7 @@ int verify_input(clientContext* context, int fd, int dest){
         exit(EXIT_FAILURE);
     }
 
+    bzero(context->name_buffer, WA_MAX_INPUT);
     if(recv(dest, context->name_buffer, WA_MAX_NAME, 0) == FAIL_CODE)
     {
         system_call_error("recv");
@@ -221,6 +223,7 @@ int verify_input(clientContext* context, int fd, int dest){
         }
         case WHO:
         {
+//            bzero(context->msg_buffer, WA_MAX_INPUT);
             recv(dest, context->msg_buffer, WA_MAX_INPUT, 0);
             std::string s = "create_group GGG " + std::string(context->msg_buffer);
             parse_command(s, context->commandT,
