@@ -102,9 +102,11 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
     }
     else if(strcmp(context->name_buffer, duplicate) == 0){
         print_dup_connection();
+        exit(EXIT_FAILURE);
     }
     else{
         print_fail_connection();
+        exit(EXIT_FAILURE);
     }
     return server_socket;
 }

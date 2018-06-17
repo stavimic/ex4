@@ -164,6 +164,8 @@ int connectNewClient(serverContext* context, int fd)
         }
         return FAIL_CODE;
     }
+
+
     Client* new_client = new Client();
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
