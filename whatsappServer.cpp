@@ -61,6 +61,33 @@ void free_resources(serverContext* context)
     delete context->server_members;
 }
 
+
+int read_data(int s, char *buf, int n)
+{
+    int bcount;
+    /* counts bytes read */
+    int br;
+    /* bytes read this pass */
+    bcount= 0; br= 0;
+    while (bcount < n)
+     { /* loop until full buffer */
+        br = read(s, buf, n-bcount);
+        if (br > 0)
+        {
+            bcount += br;
+            buf += br;
+        }
+        if (br < 1)
+        {
+            return(-1);
+        }
+    }
+    return(bcount);
+}
+
+
+
+
 int establish(unsigned short portnum)
 {
     char myname[WA_MAX_NAME + 1];
@@ -139,7 +166,7 @@ Group* getGroupByName(serverContext* context, std::string& name)
 int connectNewClient(serverContext* context, int fd)
 {
     bzero(context->name_buffer, WA_MAX_NAME);
-    recv(fd, context->name_buffer, WA_MAX_NAME, 0);
+    read_data(fd, context->name_buffer, WA_MAX_NAME);
     // check for duplicate
     std::string name = std::string(context->name_buffer);
     if(get_client_by_name(context, name) != nullptr)  // name already exists
@@ -309,7 +336,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
 int handleClientRequest(serverContext* context, int fd)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
-    recv(fd, context->msg_buffer, WA_MAX_INPUT, 0);  // Get command
+    read_data(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -317,6 +344,7 @@ int handleClientRequest(serverContext* context, int fd)
             *(context->msg),
             *(context->recipients)
     );
+
 
     Client* sender = get_client_by_fd(context, fd);
     switch(context->commandT)
@@ -559,8 +587,6 @@ int select_flow(int connection_socket)
             system_call_error("select");
             exit(EXIT_FAILURE);
         }
-        std::cerr<<"out of select\n";
-
 
         if (FD_ISSET(STDIN_FILENO, &readfds))  // Message from stdin
         {
@@ -582,11 +608,6 @@ int select_flow(int connection_socket)
             //will check each client if it’s in readfds and then receive a message from him
             for(const auto client: *(context.server_members))
             {
-                if(client == nullptr)
-                {
-                    std::cerr<<"client == nullptr\n";
-                }
-
                 if(FD_ISSET((*client).client_socket, &readfds))
                 {
                     std::cerr<<"entering client request- socket number" << (*client).client_socket << "\n";
@@ -597,12 +618,6 @@ int select_flow(int connection_socket)
                     }
                 }
             }
-        }
-
-        std::cerr<<"end of loop\n";
-        if(context.name_buffer == nullptr)
-        {
-            std::cerr<<"name_buffer == nullptr\n";
         }
         bzero(context.name_buffer, WA_MAX_NAME);
     }

@@ -155,6 +155,12 @@ void parse_command(const std::string& command, command_type& commandT,
 
     strcpy(c, command.c_str());
     s = strtok_r(c, " ", &saveptr);
+
+    if (s == nullptr)
+    {
+        std::cerr<< "---------------------- s is null ------------------------\n";
+        return;
+    }
     
     if(!strcmp(s, "create_group"))
     {
