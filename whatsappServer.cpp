@@ -16,10 +16,12 @@
 #define FAIL_CODE (-1)
 #define PORT_INDEX 1
 #define NUM_OF_ARGS 2
+#define EXIT_SIZE 5
 char * auth = const_cast<char *>("$auth_success");
 char * command_fail = const_cast<char *>("$command_fail");
 char * duplicate = const_cast<char *>("$dup");
 char * shut_down_command = const_cast<char *>("$exit");
+
 
 
 // ======================================================================= //
@@ -149,15 +151,15 @@ Client* get_client_by_name(serverContext* context, std::string& name)
 int connectNewClient(serverContext* context, int fd)
 {
     bzero(context->name_buffer, WA_MAX_NAME);
-    read(fd, context->name_buffer, WA_MAX_NAME);
+    recv(fd, context->name_buffer, WA_MAX_NAME, 0);
     // check for duplicate
     std::string name = std::string(context->name_buffer);
     if(get_client_by_name(context, name) != nullptr)
     {
         // Client name already exists, inform the client that the creation failed
-        if(write(fd, duplicate, WA_MAX_NAME) < 0 )
+        if(send(fd, duplicate, WA_MAX_NAME, 0) < 0 )
         {
-            system_call_error("write");
+            system_call_error("send");
             exit(EXIT_FAILURE);
         }
         return FAIL_CODE;
@@ -166,9 +168,9 @@ int connectNewClient(serverContext* context, int fd)
     *new_client = {name, fd};
     (context->server_members)->push_back(new_client);
     print_connection_server(name);
-    if(write(fd, auth, WA_MAX_NAME) < 0)
+    if(send(fd, auth, WA_MAX_NAME, 0) < 0)
     {
-        system_call_error("write");
+        system_call_error("send");
         exit(EXIT_FAILURE);
     }
     return EXIT_SUCCESS;
@@ -320,7 +322,7 @@ int handel_group_creation(serverContext* context, int origin_fd)
 int handleClientRequest(serverContext* context, int fd)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
-    read(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
+    recv(fd, context->msg_buffer, WA_MAX_INPUT, 0);  // Get command
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -344,16 +346,16 @@ int handleClientRequest(serverContext* context, int fd)
             {
                 if(send_msg(context, dest_fd, *(context->msg), fd) == FAIL_CODE)
                 {
-                    if(write(fd, command_fail, WA_MAX_NAME) < 0)  // inform client that sending failed
+                    if(send(fd, command_fail, WA_MAX_NAME, 0) < 0)  // inform client that sending failed
                     {
-                        system_call_error("write");
+                        system_call_error("send");
                         exit(EXIT_FAILURE);
                     }
                     return FAIL_CODE;
                 }
-                if(write(fd, auth, WA_MAX_NAME) < 0)  // inform client that sending succeeded
+                if(send(fd, auth, WA_MAX_NAME, 0) < 0)  // inform client that sending succeeded
                 {
-                    system_call_error("write");
+                    system_call_error("send");
                     exit(EXIT_FAILURE);
                 }
                 return EXIT_SUCCESS;
@@ -377,9 +379,9 @@ int handleClientRequest(serverContext* context, int fd)
                 {
                     std::string trimmed_msg = trim_message(*(context->msg));
                     print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
-                    if(write(fd, command_fail, WA_MAX_NAME) < 0) // inform client that sending failed
+                    if(send(fd, command_fail, WA_MAX_NAME, 0) < 0) // inform client that sending failed
                     {
-                        system_call_error("write");
+                        system_call_error("send");
                         exit(EXIT_FAILURE);
                     }
                     return FAIL_CODE;
@@ -393,9 +395,9 @@ int handleClientRequest(serverContext* context, int fd)
                     }
                 }
                 print_send(true, true, sender->name, *(context->name), trim_message(*(context->msg))); // message success
-                if(write(fd, auth, WA_MAX_NAME) < 0 )  // inform client that sending succeeded
+                if(send(fd, auth, WA_MAX_NAME, 0) < 0 )  // inform client that sending succeeded
                 {
-                    system_call_error("write");
+                    system_call_error("send");
                     exit(EXIT_FAILURE);
                 }
                 return EXIT_SUCCESS;
@@ -405,9 +407,9 @@ int handleClientRequest(serverContext* context, int fd)
                 std::string trimmed_msg = trim_message(*(context->msg));
                 print_send(true, false, sender->name, *(context->name), trimmed_msg); // message FAIL
                 // inform client that sending failed:
-                if (write(fd, command_fail, WA_MAX_NAME)< 0)
+                if (send(fd, command_fail, WA_MAX_NAME, 0)< 0)
                 {
-                    system_call_error("write");
+                    system_call_error("send");
                     exit(EXIT_FAILURE);
                 }
                 return FAIL_CODE;
@@ -418,18 +420,18 @@ int handleClientRequest(serverContext* context, int fd)
         {
             if(handel_group_creation(context, fd) == FAIL_CODE)
             {
-                if(write(fd, command_fail, WA_MAX_NAME)< 0 )  // inform client that group failed
+                if(send(fd, command_fail, WA_MAX_NAME, 0)< 0 )  // inform client that group failed
                 {
-                    system_call_error("write");
+                    system_call_error("send");
                     exit(EXIT_FAILURE);
                 }
                 print_create_group(true, false, sender->name,  *(context->name)); // Print fail message
             }
             else
             {
-                if(write(fd, auth, WA_MAX_NAME)<0)  // inform client that group succeeded
+                if(send(fd, auth, WA_MAX_NAME, 0)<0)  // inform client that group succeeded
                 {
-                    system_call_error("write");
+                    system_call_error("send");
                     exit(EXIT_FAILURE);
                 }
                 print_create_group(true, true, sender->name,  *(context->name)); // Print success message
@@ -447,14 +449,14 @@ int handleClientRequest(serverContext* context, int fd)
                 total += ",";
             }
             total = total.substr(0, total.length() - 1);
-            if(write(fd, auth, WA_MAX_NAME)<0)  // inform client that group succeeded
+            if(send(fd, auth, WA_MAX_NAME, 0)<0)  // inform client that group succeeded
             {
-                system_call_error("write");
+                system_call_error("send");
                 exit(EXIT_FAILURE);
             }
-            if(write(fd, total.c_str(), WA_MAX_INPUT)<0)  // send the list of clients
+            if(send(fd, total.c_str(), WA_MAX_INPUT, 0)<0)  // send the list of clients
             {
-                system_call_error("write");
+                system_call_error("send");
                 exit(EXIT_FAILURE);
             }
             print_who_server(sender->name);
@@ -490,9 +492,9 @@ int handleClientRequest(serverContext* context, int fd)
                     ++iter;
                 }
             }
-            if(write(fd, auth, WA_MAX_NAME) < 0 )  // inform client that un-registering succeeded
+            if(send(fd, auth, WA_MAX_NAME, 0) < 0 )  // inform client that un-registering succeeded
             {
-                system_call_error("write");
+                system_call_error("send");
                 exit(EXIT_FAILURE);
             }
             print_exit(true, name_to_delete);
@@ -508,7 +510,7 @@ int handleClientRequest(serverContext* context, int fd)
 int serverStdInput(serverContext* context)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
-    if(read(STDIN_FILENO, context->name_buffer, 5) == FAIL_CODE)  // Get command from STDIN
+    if(read(STDIN_FILENO, context->name_buffer, EXIT_SIZE) == FAIL_CODE)  // Get command from STDIN
     {
         system_call_error("read");
         exit(1);
@@ -522,9 +524,9 @@ int serverStdInput(serverContext* context)
     // Now tell all the clients to terminate:
     for(Client* client : *context->server_members)
     {
-        if(write(client->client_socket, shut_down_command, WA_MAX_NAME) == FAIL_CODE)
+        if(send(client->client_socket, shut_down_command, WA_MAX_NAME, 0) == FAIL_CODE)
         {
-            system_call_error("write");
+            system_call_error("send");
             exit(1);
         }
 
