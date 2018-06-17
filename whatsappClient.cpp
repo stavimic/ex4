@@ -174,11 +174,17 @@ int verify_input(clientContext* context, int fd, int dest){
             }
             break;
         case WHO:
+        {
             break;
+        }
         case EXIT:
+        {
             break;
+        }
         default:
+        {
             break;
+        }
     }
 
     ssize_t ans = send(dest, context->msg_buffer, WA_MAX_INPUT, 0);
@@ -222,9 +228,11 @@ int verify_input(clientContext* context, int fd, int dest){
             break;
         }
         case EXIT:
+        {
             print_exit(strcmp(context->name_buffer, auth) == 0, context->client_name);
             free_resources(context);
             exit(0);
+        }
         default:
             break;
     }
