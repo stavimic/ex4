@@ -21,33 +21,51 @@ char * auth = const_cast<char *>("$auth_success");
 char * command_fail = const_cast<char *>("$command_fail");
 char * duplicate = const_cast<char *>("$dup");
 char * shut_down_command = const_cast<char *>("$exit");
+
 // ======================================================================= //
 
+/**
+ * Represents a single client
+ */
 struct Client
 {
-    std::string name;
-    int client_socket;
+    std::string name;  // name of client
+    int client_socket; // fd of client
 };
 
+
+/**
+ * represents a single group
+ */
 struct Group
 {
-    std::string group_name;
-    std::vector<Client*>* members;
+    std::string group_name;  // name of group
+    std::vector<Client*>* members;  // vector of members
 };
 
+
+/**
+ * The context of the current server
+ */
 struct serverContext
 {
-    char *name_buffer;
-    char *msg_buffer;
-    std::vector<Client*>* server_members;
-    std::vector<Group*>* server_groups;
+    char *name_buffer;  // short buffer
+    char *msg_buffer;  // long buffer
+    std::vector<Client*>* server_members; // all members
+    std::vector<Group*>* server_groups;  // all groups
 
+    // Arguments for parsing a command from a client:
     command_type commandT;
     std::string *name;
     std::string *msg;
     std::vector<std::string> *recipients;
 };
 
+
+/**
+ * frees all resources before exiting
+ * @param context server Context
+ */
 void free_resources(serverContext* context)
 {
     delete context-> msg_buffer;
@@ -61,7 +79,10 @@ void free_resources(serverContext* context)
     delete context->server_members;
 }
 
-
+/**
+ * receive input from client
+ *
+ */
 int read_data(int s, char *buf, int n)
 {
     int bcount;
@@ -85,9 +106,11 @@ int read_data(int s, char *buf, int n)
     return(bcount);
 }
 
-
-
-
+/**
+ * Establish initial socket for the server
+ * @param portnum port number
+ * @return file descriptor number
+ */
 int establish(unsigned short portnum)
 {
     char myname[WA_MAX_NAME + 1];
@@ -128,11 +151,22 @@ int establish(unsigned short portnum)
     return s;
 }
 
+
+/**
+ * get client by received name
+ * @param context server Context
+ * @param name name of client
+ * @return client if found, nullptr o.w.
+ */
 Client* get_client_by_name(serverContext* context, std::string& name)
 {
     for(auto client: *((*context).server_members))
     {
         long len = name.length();
+        if (len == 0)
+        {
+            return nullptr;
+        }
         std::string sub = name.substr(len - 1);
 
         if( (len >= 1) & (sub == "\n"))
@@ -147,7 +181,12 @@ Client* get_client_by_name(serverContext* context, std::string& name)
     return nullptr;
 }
 
-
+/**
+ * get group by a specified name
+ * @param context server Context
+ * @param name name of group
+ * @return group if found, nullptr o.w.
+ */
 Group* getGroupByName(serverContext* context, std::string& name)
 {
     for(auto &group: *(context->server_groups))
@@ -158,11 +197,15 @@ Group* getGroupByName(serverContext* context, std::string& name)
         }
     }
     return nullptr;
-
 }
 
 
-
+/**
+ * Connect a client for the first time
+ * @param context server Context
+ * @param fd cliend fd
+ * @return 0 if succeeded, -1 o.w.
+ */
 int connectNewClient(serverContext* context, int fd)
 {
     bzero(context->name_buffer, WA_MAX_NAME);
@@ -179,7 +222,6 @@ int connectNewClient(serverContext* context, int fd)
         }
         return FAIL_CODE;
     }
-
     if (getGroupByName(context, name) != nullptr) // name already exists
     {
         // Group name already exists, inform the client that the creation failed
@@ -189,7 +231,6 @@ int connectNewClient(serverContext* context, int fd)
             exit(EXIT_FAILURE);
         }
         return FAIL_CODE;
-
     }
     Client* new_client = new Client();
     *new_client = {name, fd};
@@ -201,9 +242,15 @@ int connectNewClient(serverContext* context, int fd)
         exit(EXIT_FAILURE);
     }
     return EXIT_SUCCESS;
-
 }
 
+
+/**
+ * find client by its' fd
+ * @param context server Context
+ * @param fd client fd
+ * @return client if found, nullptr o.w.
+ */
 Client* get_client_by_fd(serverContext* context, int fd)
 {
     for(auto client: *((*context).server_members))
@@ -220,12 +267,16 @@ Client* get_client_by_fd(serverContext* context, int fd)
 /**
  * Remove "/n" from message
  * @param message
- * @return
+ * @return trimmed message
  */
 std::string trim_message(std::string&  message)
 {
     std::string trimmed = std::string(message);
     long len = trimmed.length();
+    if (len == 0)
+    {
+        return trimmed;
+    }
     std::string sub = trimmed.substr(len - 1);
 
     if( (len >= 1) & (sub == "\n"))
@@ -235,6 +286,13 @@ std::string trim_message(std::string&  message)
     return trimmed;
 }
 
+
+/**
+ * get fd of client by name
+ * @param context server context
+ * @param name name of client
+ * @return client or -1 if not found
+ */
 int getFdByName(serverContext* context, std::string& name)
 {
     for(auto &client: *(context->server_members)){
@@ -246,14 +304,19 @@ int getFdByName(serverContext* context, std::string& name)
     return FAIL_CODE;
 }
 
-
+/**
+ * send a message to destination fd
+ * @param context server context
+ * @param fd destination client
+ * @param msg message
+ * @param origin_fd sender fd
+ * @return EXIT_SUCCESS
+ */
 int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
 {
     Client* origin_client = get_client_by_fd(context, origin_fd);
     Client* dest = get_client_by_fd(context, fd);
-
     std::string final_msg = origin_client->name + ": " + msg;
-
     if(send(fd, final_msg.c_str(), WA_MAX_INPUT, 0) == FAIL_CODE)
     {
         system_call_error("send");
@@ -264,14 +327,18 @@ int send_msg(serverContext* context, int fd,  std::string& msg, int origin_fd)
     return EXIT_SUCCESS;
 }
 
-
+/**
+ * Checks if name exists in server
+ * @return true or false
+ */
 int does_name_exist(serverContext* context, std::string& name)
 {
     if (getFdByName(context, name) != FAIL_CODE)
     {
         return true;
     }
-    for(auto &group: *(context->server_groups)){
+    for(auto &group: *(context->server_groups))
+    {
         if(group->group_name == name)
         {
             return true;
@@ -280,7 +347,12 @@ int does_name_exist(serverContext* context, std::string& name)
     return false;
 }
 
-
+/**
+ * create a group upon request
+ * @param context server context
+ * @param origin_fd admin fd
+ * @return 0 / -1
+ */
 int handel_group_creation(serverContext* context, int origin_fd)
 {
     // Make sure the given name doesn't already exist:
@@ -339,10 +411,8 @@ int handleClientRequest(serverContext* context, int fd)
     read_data(fd, context->msg_buffer, WA_MAX_INPUT);  // Get command
     if(context-> msg_buffer == nullptr)
     {
-        std::cerr<< "null" << std::endl;
         return FAIL_CODE;
     }
-    
     parse_command(
             context->msg_buffer,
             context->commandT,
@@ -350,7 +420,6 @@ int handleClientRequest(serverContext* context, int fd)
             *(context->msg),
             *(context->recipients)
     );
-
 
     Client* sender = get_client_by_fd(context, fd);
     switch(context->commandT)
@@ -435,7 +504,7 @@ int handleClientRequest(serverContext* context, int fd)
         {
             if(handel_group_creation(context, fd) == FAIL_CODE)
             {
-                if(send(fd, command_fail, WA_MAX_NAME, 0)< 0 )  // inform client that group failed
+                if(send(fd, command_fail, WA_MAX_NAME, 0) < 0 )  // inform client that group failed
                 {
                     system_call_error("send");
                     exit(EXIT_FAILURE);
@@ -520,12 +589,15 @@ int handleClientRequest(serverContext* context, int fd)
         {
             break;
         }
-
     }
     return EXIT_SUCCESS;
 }
 
-
+/**
+ * Handke std::in input
+ * @param context server context
+ * @return 0 or -1
+ */
 int serverStdInput(serverContext* context)
 {
     bzero(context->msg_buffer, WA_MAX_INPUT);
@@ -535,7 +607,7 @@ int serverStdInput(serverContext* context)
         exit(EXIT_FAILURE);
     }
     auto msg = std::string(context->name_buffer);
-    if(strcmp(trim_message(msg).c_str(), "EXIT"))
+    if(strcmp(trim_message(msg).c_str(), "EXIT"))  // Check if message is EXIT
     {
         print_invalid_input();
         bzero(context->name_buffer, WA_MAX_NAME);
@@ -556,7 +628,11 @@ int serverStdInput(serverContext* context)
     exit(EXIT_SUCCESS);
 }
 
-
+/**
+ * Manages the main flow of the program using select
+ * @param connection_socket server socket
+ * @return 0
+ */
 int select_flow(int connection_socket)
 {
     serverContext context;
@@ -587,7 +663,7 @@ int select_flow(int connection_socket)
     while (true)
     {
         readfds = clientsfds;
-        if (select(MAX_QUEUED + 1, &readfds, nullptr, nullptr, nullptr) < 0)
+        if (select(MAX_QUEUED + 4, &readfds, nullptr, nullptr, nullptr) < 0)
         {
             system_call_error("select");
             exit(EXIT_FAILURE);
@@ -615,8 +691,6 @@ int select_flow(int connection_socket)
             {
                 if(FD_ISSET((*client).client_socket, &readfds))
                 {
-                    std::cerr<<"entering client request- socket number" << (*client).client_socket << "\n";
-
                     if(handleClientRequest(&context, client->client_socket) == ERASE_USER_CODE)
                     {
                         FD_CLR(client->client_socket, &clientsfds);
@@ -626,21 +700,21 @@ int select_flow(int connection_socket)
         }
         bzero(context.name_buffer, WA_MAX_NAME);
     }
+    return EXIT_SUCCESS;
 }
 
 
 int main(int argc, char** argv)
 {
-
-    if(argc != NUM_OF_ARGS)
+    if(argc != NUM_OF_ARGS) // wrong number of arguments
     {
         print_server_usage();
         exit(0);
     }
     unsigned short port_number = atoi(argv[PORT_INDEX]);
     int fd = establish(port_number);
-    select_flow(fd);
-    return EXIT_SUCCESS; // todo check if this is what we need to return
+    select_flow(fd); // Start flow of the program
+    return EXIT_SUCCESS;
 }
 
 

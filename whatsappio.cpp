@@ -158,7 +158,6 @@ void parse_command(const std::string& command, command_type& commandT,
 
     if (s == nullptr)
     {
-        std::cerr<< "---------------------- s is null ------------------------\n";
         return;
     }
     
@@ -201,6 +200,11 @@ void parse_command(const std::string& command, command_type& commandT,
         else
         {
             name = s;
+            if (command.size() <= name.size() + 6)
+            {
+                commandT = INVALID;
+                return;
+            }
             message = command.substr(name.size() + 6); // 6 = 2 spaces + "send"
         }
     }

@@ -332,7 +332,7 @@ int main(int argc, char** argv)
     std::vector<std::string>* recipients = new std::vector<std::string>;
 
     // define context
-    context = 
+    context =
     {
             new char[WA_MAX_NAME],
             new char[WA_MAX_INPUT],
