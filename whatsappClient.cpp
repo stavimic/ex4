@@ -95,8 +95,8 @@ int call_socket(clientContext* context, const char *hostname,  int portnum)
 
     send(server_socket, context->name_buffer, WA_MAX_NAME, 0);
     bzero(context->name_buffer, WA_MAX_NAME);
-    read(server_socket, context->name_buffer, WA_MAX_NAME);
-//    std::cout << context->name_buffer << std::endl;
+    recv(server_socket, context->name_buffer, WA_MAX_NAME, 0);
+
     if (strcmp(context->name_buffer, auth) == 0){
         print_connection();
     }
@@ -322,7 +322,7 @@ int main(int argc, char** argv)
         if (FD_ISSET(server, &readfds))
         {
             bzero(context.msg_buffer, WA_MAX_INPUT);
-            read(server, context.msg_buffer, WA_MAX_INPUT);
+            recv(server, context.msg_buffer, WA_MAX_INPUT, 0);
             if(strcmp(shut_down_command, context.msg_buffer) == 0){
                 free_resources(&context);
                 exit(EXIT_FAILURE);
